@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: PicHub API
+  version: 1.0.0
+servers:
+  - url: /api
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /auth/register:
+    post:
+      summary: Register
+      responses:
+        "200":
+          description: OK
+  /auth/login:
+    post:
+      summary: Login
+      responses:
+        "200":
+          description: OK
+  /auth/me:
+    get:
+      summary: Get current user
+      responses:
+        "200":
+          description: OK
+  /images:
+    get:
+      summary: List images
+      responses:
+        "200":
+          description: OK
+  /images/upload:
+    post:
+      summary: Upload images
+      responses:
+        "200":
+          description: OK
+

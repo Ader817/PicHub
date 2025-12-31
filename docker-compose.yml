@@ -1,0 +1,107 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pichub-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-pichub}
+      MYSQL_USER: ${DB_USER:-pichub_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-pichub_pass}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    profiles: ["prod"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pichub-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      DB_DIALECT: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-pichub}
+      DB_USER: ${DB_USER:-pichub_user}
+      DB_PASSWORD: ${DB_PASSWORD:-pichub_pass}
+      JWT_SECRET: ${JWT_SECRET:-please_change_me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AMAP_API_KEY: ${AMAP_API_KEY:-}
+      UPLOADS_DIR: /app/uploads
+    ports:
+      - "8080:8080"
+    volumes:
+      - upload-data:/app/uploads
+
+  frontend:
+    profiles: ["prod"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pichub-frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  # Dev profile: bind-mount source code to avoid rebuilds.
+  backend-dev:
+    profiles: ["dev"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: pichub-backend-dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      DB_DIALECT: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-pichub}
+      DB_USER: ${DB_USER:-pichub_user}
+      DB_PASSWORD: ${DB_PASSWORD:-pichub_pass}
+      JWT_SECRET: ${JWT_SECRET:-please_change_me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AMAP_API_KEY: ${AMAP_API_KEY:-}
+      UPLOADS_DIR: /app/uploads
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - upload-data:/app/uploads
+
+  frontend-dev:
+    profiles: ["dev"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: pichub-frontend-dev
+    depends_on:
+      - backend-dev
+    environment:
+      VITE_PROXY_TARGET: http://backend-dev:8080
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  mysql-data:
+  upload-data:
