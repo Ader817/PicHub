@@ -38,6 +38,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-please_change_me}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_API_VERSION: ${GEMINI_API_VERSION:-v1alpha}
+      GEMINI_TEXT_MODEL: ${GEMINI_TEXT_MODEL:-gemini3flash}
+      GEMINI_VISION_MODEL: ${GEMINI_VISION_MODEL:-gemini3flash}
       AMAP_API_KEY: ${AMAP_API_KEY:-}
       UPLOADS_DIR: /app/uploads
     ports:
@@ -77,6 +80,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-please_change_me}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_API_VERSION: ${GEMINI_API_VERSION:-v1alpha}
+      GEMINI_TEXT_MODEL: ${GEMINI_TEXT_MODEL:-gemini3flash}
+      GEMINI_VISION_MODEL: ${GEMINI_VISION_MODEL:-gemini3flash}
       AMAP_API_KEY: ${AMAP_API_KEY:-}
       UPLOADS_DIR: /app/uploads
     ports:

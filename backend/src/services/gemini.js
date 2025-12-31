@@ -1,6 +1,25 @@
 import fetch from "node-fetch";
 import { getEnv } from "../config/env.js";
 
+function normalizeGeminiModelName(model) {
+  const raw = String(model || "").trim();
+  if (!raw) return null;
+
+  const lower = raw.toLowerCase();
+
+  // Friendly aliases (per latest GenAI JS SDK docs/examples)
+  if (lower === "gemini3flash") return "gemini-3-flash-preview";
+  if (lower === "gemini3pro") return "gemini-3-pro";
+  if (lower === "gemini25flash") return "gemini-2.5-flash";
+  if (lower === "gemini20flash") return "gemini-2.0-flash-001";
+
+  // Normalize some common mistaken names we saw in configs/logs
+  if (lower === "gemini-3.0-flash") return "gemini-3-flash-preview";
+  if (lower === "gemini-3.0-pro") return "gemini-3-pro";
+
+  return raw;
+}
+
 function extractFirstJsonObject(text) {
   if (!text) return null;
   const start = text.indexOf("{");
@@ -14,10 +33,41 @@ function extractFirstJsonObject(text) {
   }
 }
 
+async function generateContent({ apiKey, model, contents }) {
+  const apiVersion = getEnv("GEMINI_API_VERSION", "v1alpha");
+  const url = new URL(`https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent`);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        // Per docs: x-goog-api-key header is supported for authentication.
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({ contents }),
+    });
+
+    if (!res.ok) {
+      const msg = await res.text().catch(() => "");
+      const err = new Error(`Gemini API error: ${res.status} ${msg}`.trim());
+      err.statusCode = 502;
+      throw err;
+    }
+
+    return res.json();
+  } catch (e) {
+    const err = new Error(
+      `Gemini request failed (network/TLS). If you are in a restricted network, Google API may be unreachable. Original: ${e?.message || e}`
+    );
+    err.statusCode = 502;
+    throw err;
+  }
+}
+
 export async function geminiVisionTags({ apiKey, mimeType, base64 }) {
-  const model = getEnv("GEMINI_VISION_MODEL", "gemini-3-flash");
-  const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`);
-  url.searchParams.set("key", apiKey);
+  const model =
+    normalizeGeminiModelName(getEnv("GEMINI_VISION_MODEL", "gemini3flash")) || "gemini-3-flash-preview";
 
   const prompt = `
 请分析这张图片，从以下维度生成标签（每个维度1-3个标签）：
@@ -28,32 +78,18 @@ export async function geminiVisionTags({ apiKey, mimeType, base64 }) {
 {"scene":["标签1"],"objects":["标签1"],"style":["标签1"]}
 `.trim();
 
-  const body = {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: prompt },
-          { inlineData: { mimeType, data: base64 } },
-        ],
-      },
-    ],
-  };
+  // REST schema uses snake_case inline_data/mime_type (per latest docs).
+  const contents = [
+    {
+      role: "user",
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: mimeType, data: base64 } },
+      ],
+    },
+  ];
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    const err = new Error(`Gemini API error: ${res.status} ${msg}`.trim());
-    err.statusCode = 502;
-    throw err;
-  }
-
-  const data = await res.json();
+  const data = await generateContent({ apiKey, model, contents });
   const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join("\n") || "";
   const json = extractFirstJsonObject(text);
   if (!json) return { scene: [], objects: [], style: [] };
@@ -66,9 +102,8 @@ export async function geminiVisionTags({ apiKey, mimeType, base64 }) {
 }
 
 export async function geminiParseNlSearch({ apiKey, query }) {
-  const model = getEnv("GEMINI_TEXT_MODEL", "gemini-1.5-flash");
-  const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`);
-  url.searchParams.set("key", apiKey);
+  const model =
+    normalizeGeminiModelName(getEnv("GEMINI_TEXT_MODEL", "gemini3flash")) || "gemini-3-flash-preview";
 
   const prompt = `
 请将以下自然语言查询转换为JSON格式的搜索条件，不要包含其他文字。
@@ -87,11 +122,9 @@ export async function geminiParseNlSearch({ apiKey, query }) {
 {"timeRange":{"start":"2025-12-01","end":"2025-12-31"},"tags":["风景"],"location":"北京"}
 `.trim();
 
-  const body = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  if (!res.ok) return null;
-  const data = await res.json();
+  const contents = [{ role: "user", parts: [{ text: prompt }] }];
+  const data = await generateContent({ apiKey, model, contents }).catch(() => null);
+  if (!data) return null;
   const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join("\n") || "";
   return extractFirstJsonObject(text);
 }
-
