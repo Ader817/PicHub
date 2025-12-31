@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "mcp": "node src/mcp/server.js",
     "backfill:auto-tags": "node src/scripts/backfillAutoTags.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
@@ -15,7 +14,6 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
