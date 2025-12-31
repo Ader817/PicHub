@@ -84,3 +84,28 @@ test("edited copies get incremental names", async () => {
   expect(edit2.status).toBe(200);
   expect(edit2.body.image.filename).toBe("zju(2).png");
 });
+
+test("auto creates year tag after upload", async () => {
+  const app = createApp();
+  const token = await registerAndGetToken(app);
+  const year = new Date().getFullYear();
+
+  const buffer = await sharp({
+    create: { width: 32, height: 32, channels: 3, background: { r: 0, g: 0, b: 255 } },
+  })
+    .png()
+    .toBuffer();
+
+  const upload = await request(app)
+    .post("/api/images/upload")
+    .set("Authorization", `Bearer ${token}`)
+    .attach("files", buffer, { filename: "year.png", contentType: "image/png" });
+
+  expect(upload.status).toBe(200);
+  const id = upload.body.images[0].id;
+
+  const detail = await request(app).get(`/api/images/${id}`).set("Authorization", `Bearer ${token}`);
+  expect(detail.status).toBe(200);
+  const names = detail.body.image.tags.map((t) => t.name);
+  expect(names).toContain(`时间/${year}`);
+});
