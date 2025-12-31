@@ -3,6 +3,8 @@ import { z } from "zod";
 import { Image, ImageMetadata, Tag } from "../db/models/index.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { deleteStoredFiles, publicUrlForRelPath, saveOriginalAndThumbnails } from "../services/images.js";
+import { applyAutoTags } from "../services/autoTags.js";
+import { inheritImageTags } from "../services/tagInheritance.js";
 
 function normalizeUploadFilename(originalname) {
   if (!originalname) return "unnamed";
@@ -71,6 +73,10 @@ function serializeImage(image) {
           lat: image.ImageMetadata.gps_latitude,
           lon: image.ImageMetadata.gps_longitude,
           locationName: image.ImageMetadata.location_name,
+          province: image.ImageMetadata.province,
+          city: image.ImageMetadata.city,
+          width: image.ImageMetadata.width,
+          height: image.ImageMetadata.height,
           cameraModel: image.ImageMetadata.camera_model,
           aperture: image.ImageMetadata.aperture,
           shutterSpeed: image.ImageMetadata.shutter_speed,
@@ -112,6 +118,18 @@ export const upload = asyncHandler(async (req, res) => {
       gps_longitude: saved.exif.lon,
       location_name: saved.exif.locationName,
       camera_model: saved.exif.cameraModel,
+      province: saved.exif.province,
+      city: saved.exif.city,
+      width: saved.width,
+      height: saved.height,
+    });
+
+    await applyAutoTags({
+      imageId: image.id,
+      captureTime: saved.exif.captureTime,
+      uploadTime: now,
+      province: saved.exif.province,
+      city: saved.exif.city,
     });
 
     created.push(image);
@@ -200,6 +218,8 @@ export const saveEdited = asyncHandler(async (req, res) => {
     created_at: now,
   });
 
+  await inheritImageTags({ fromImageId: parentId, toImageId: image.id });
+
   await ImageMetadata.create({
     image_id: image.id,
     capture_time: saved.exif.captureTime,
@@ -207,6 +227,18 @@ export const saveEdited = asyncHandler(async (req, res) => {
     gps_longitude: saved.exif.lon,
     location_name: saved.exif.locationName,
     camera_model: saved.exif.cameraModel,
+    province: saved.exif.province,
+    city: saved.exif.city,
+    width: saved.width,
+    height: saved.height,
+  });
+
+  await applyAutoTags({
+    imageId: image.id,
+    captureTime: saved.exif.captureTime,
+    uploadTime: now,
+    province: saved.exif.province,
+    city: saved.exif.city,
   });
 
   const full = await Image.findOne({ where: { id: image.id }, include: [{ model: Tag }, { model: ImageMetadata }] });

@@ -61,7 +61,17 @@ export const generateAiTags = asyncHandler(async (req, res) => {
   const base64 = buffer.toString("base64");
 
   const tags = await geminiVisionTags({ apiKey, mimeType: image.mime_type, base64 });
-  const names = [...new Set([...tags.scene, ...tags.objects, ...tags.style].map((s) => s.trim()).filter(Boolean))];
+
+  // Avoid creating tags that conflict with auto time/location namespace.
+  const blockedPrefixes = ["时间/", "地点/"];
+  const names = [
+    ...new Set(
+      [...tags.scene, ...tags.objects, ...tags.style]
+        .map((s) => String(s).trim())
+        .filter(Boolean)
+        .filter((name) => !blockedPrefixes.some((p) => name.startsWith(p)))
+    ),
+  ];
 
   const now = new Date();
   const createdOrExisting = [];

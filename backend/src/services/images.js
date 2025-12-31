@@ -71,7 +71,12 @@ export async function saveOriginalAndThumbnails({ userId, file, now = new Date()
     originalRel: relativeToUploads(paths.originalAbs),
     smallRel: relativeToUploads(paths.smallAbs),
     mediumRel: relativeToUploads(paths.mediumAbs),
-    exif: { ...exif, locationName: location || null },
+    exif: {
+      ...exif,
+      locationName: location?.formattedAddress || null,
+      province: location?.province || null,
+      city: location?.city || null,
+    },
   };
 }
 

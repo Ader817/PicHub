@@ -10,7 +10,15 @@ export async function reverseGeocodeAmap({ apiKey, lat, lon }) {
   const res = await fetch(url, { timeout: 8000 });
   if (!res.ok) return null;
   const data = await res.json();
-  const addr = data?.regeocode?.formatted_address;
-  return addr ? String(addr) : null;
-}
 
+  const formatted = data?.regeocode?.formatted_address ? String(data.regeocode.formatted_address) : null;
+  const component = data?.regeocode?.addressComponent || null;
+  const province = component?.province ? String(component.province) : null;
+
+  // AMap may return city as string or [] (for municipalities), and the user asked to strictly use the city field.
+  let city = null;
+  if (typeof component?.city === "string" && component.city.trim()) city = component.city.trim();
+  if (Array.isArray(component?.city) && component.city.length === 0) city = null;
+
+  return { formattedAddress: formatted, province, city };
+}

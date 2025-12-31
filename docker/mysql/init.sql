@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS image_metadata (
   gps_latitude DECIMAL(10, 8),
   gps_longitude DECIMAL(11, 8),
   location_name VARCHAR(255),
+  province VARCHAR(50),
+  city VARCHAR(50),
+  width INT,
+  height INT,
   camera_model VARCHAR(100),
   aperture VARCHAR(20),
   shutter_speed VARCHAR(20),
@@ -65,4 +69,3 @@ CREATE TABLE IF NOT EXISTS image_tag (
   FOREIGN KEY (image_id) REFERENCES image(id) ON DELETE CASCADE,
   FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-

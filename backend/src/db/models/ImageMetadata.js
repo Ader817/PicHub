@@ -10,6 +10,10 @@ export function defineImageMetadata(sequelize) {
       gps_latitude: { type: DataTypes.DECIMAL(10, 8) },
       gps_longitude: { type: DataTypes.DECIMAL(11, 8) },
       location_name: { type: DataTypes.STRING(255) },
+      province: { type: DataTypes.STRING(50) },
+      city: { type: DataTypes.STRING(50) },
+      width: { type: DataTypes.INTEGER },
+      height: { type: DataTypes.INTEGER },
       camera_model: { type: DataTypes.STRING(100) },
       aperture: { type: DataTypes.STRING(20) },
       shutter_speed: { type: DataTypes.STRING(20) },
@@ -18,4 +22,3 @@ export function defineImageMetadata(sequelize) {
     { tableName: "image_metadata", timestamps: false }
   );
 }
-
