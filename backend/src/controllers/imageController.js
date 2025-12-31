@@ -1,3 +1,4 @@
+import path from "node:path";
 import { z } from "zod";
 import { Image, ImageMetadata, Tag } from "../db/models/index.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -18,6 +19,37 @@ function normalizeUploadFilename(originalname) {
   if (hasCjk) return decoded;
 
   return originalname;
+}
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function nextEditedFilename({ userId, parentImageId, parentFilename }) {
+  const parentParsed = path.parse(parentFilename || "image");
+  const baseStem = parentParsed.name || "image";
+  const ext = parentParsed.ext || "";
+
+  const siblings = await Image.findAll({
+    where: { user_id: userId, parent_image_id: parentImageId, is_edited: true },
+    attributes: ["filename"],
+  });
+
+  const pattern = new RegExp(`^${escapeRegExp(baseStem)}\\((\\d+)\\)$`);
+  const used = new Set();
+
+  for (const row of siblings) {
+    const parsed = path.parse(row.filename || "");
+    if (parsed.ext !== ext) continue;
+    const match = parsed.name.match(pattern);
+    if (!match) continue;
+    const n = Number(match[1]);
+    if (Number.isFinite(n) && n > 0) used.add(n);
+  }
+
+  let index = 1;
+  while (used.has(index)) index += 1;
+  return `${baseStem}(${index})${ext}`;
 }
 
 function serializeImage(image) {
@@ -146,9 +178,15 @@ export const saveEdited = asyncHandler(async (req, res) => {
   const saved = await saveOriginalAndThumbnails({ userId: req.auth.userId, file, now: new Date() });
   const now = new Date();
 
+  const newFilename = await nextEditedFilename({
+    userId: req.auth.userId,
+    parentImageId: parentId,
+    parentFilename: parent.filename,
+  });
+
   const image = await Image.create({
     user_id: req.auth.userId,
-    filename: `${parent.filename}_edited`,
+    filename: newFilename,
     original_path: saved.originalRel,
     thumbnail_small: saved.smallRel,
     thumbnail_medium: saved.mediumRel,

@@ -5,10 +5,13 @@ import sharp from "sharp";
 import { createApp } from "../app.js";
 import { sequelize } from "../db/models/index.js";
 
+let userCounter = 0;
+
 async function registerAndGetToken(app) {
+  userCounter += 1;
   const reg = await request(app).post("/api/auth/register").send({
-    username: "testuser2",
-    email: "test2@example.com",
+    username: `testuser_${userCounter}`.padEnd(6, "x"),
+    email: `test_${userCounter}@example.com`,
     password: "password",
   });
   return reg.body.token;
@@ -47,4 +50,37 @@ test("upload image creates thumbnails", async () => {
   const absRoot = process.env.UPLOADS_DIR;
   const files = await fs.readdir(path.join(absRoot), { recursive: true }).catch(() => []);
   expect(files.length).toBeGreaterThan(0);
+});
+
+test("edited copies get incremental names", async () => {
+  const app = createApp();
+  const token = await registerAndGetToken(app);
+
+  const buffer = await sharp({
+    create: { width: 64, height: 64, channels: 3, background: { r: 0, g: 255, b: 0 } },
+  })
+    .png()
+    .toBuffer();
+
+  const upload = await request(app)
+    .post("/api/images/upload")
+    .set("Authorization", `Bearer ${token}`)
+    .attach("files", buffer, { filename: "zju.png", contentType: "image/png" });
+
+  expect(upload.status).toBe(200);
+  const parentId = upload.body.images[0].id;
+
+  const edit1 = await request(app)
+    .post(`/api/images/${parentId}/edit`)
+    .set("Authorization", `Bearer ${token}`)
+    .attach("file", buffer, { filename: "edited.png", contentType: "image/png" });
+  expect(edit1.status).toBe(200);
+  expect(edit1.body.image.filename).toBe("zju(1).png");
+
+  const edit2 = await request(app)
+    .post(`/api/images/${parentId}/edit`)
+    .set("Authorization", `Bearer ${token}`)
+    .attach("file", buffer, { filename: "edited2.png", contentType: "image/png" });
+  expect(edit2.status).toBe(200);
+  expect(edit2.body.image.filename).toBe("zju(2).png");
 });
