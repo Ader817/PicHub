@@ -153,6 +153,18 @@ h6 {
     box-shadow: var(--pg-shadow-pop);
     background: var(--pg-shape-color, var(--pg-tertiary));
   }
+
+  .pg-input-pill .el-input__wrapper {
+    border-radius: var(--pg-radius-full);
+    min-height: 48px;
+    height: 48px;
+    align-items: center;
+  }
+
+  .pg-input-pill .el-input__inner {
+    height: 44px;
+    line-height: 44px;
+  }
 }
 
 /* Element Plus theme tokens + component overrides */

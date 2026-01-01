@@ -47,10 +47,10 @@ async function aiTags() {
       </el-tag>
       <div v-if="tags.length === 0" class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">暂无标签</div>
     </div>
-    <div class="flex flex-wrap gap-2">
-      <el-input v-model="newTag" placeholder="添加标签" class="w-56" @keyup.enter="addTag" />
-      <el-button @click="addTag">添加</el-button>
-      <el-button type="success" @click="aiTags">生成 AI 标签</el-button>
+    <div class="flex flex-nowrap items-center gap-2 overflow-x-auto">
+      <el-input v-model="newTag" placeholder="添加标签" class="pg-input-pill w-56 shrink-0" @keyup.enter="addTag" />
+      <el-button class="shrink-0 whitespace-nowrap" @click="addTag">添加</el-button>
+      <el-button class="shrink-0 whitespace-nowrap" type="success" @click="aiTags">生成 AI 标签</el-button>
     </div>
   </div>
 </template>
