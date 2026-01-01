@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import AppShell from '../components/AppShell.vue'
+import ImageCarousel from '../components/ImageCarousel.vue'
 import ImageUploader from '../components/ImageUploader.vue'
 import ImageGrid from '../components/ImageGrid.vue'
 import SearchPanel from '../components/SearchPanel.vue'
@@ -33,6 +34,7 @@ onMounted(load)
   <AppShell>
     <div class="grid gap-4">
       <ImageUploader @uploaded="load" />
+      <ImageCarousel :images="images" />
       <SearchPanel @results="setResults" />
       <el-skeleton :loading="loading" animated>
         <ImageGrid :images="images" />
@@ -40,4 +42,3 @@ onMounted(load)
     </div>
   </AppShell>
 </template>
-
