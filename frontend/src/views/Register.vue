@@ -24,17 +24,16 @@ async function submit() {
 
 <template>
   <AppShell>
-    <div class="mx-auto grid max-w-md gap-4 rounded-xl border bg-white p-6">
-      <div class="text-lg font-semibold">注册</div>
+    <div class="mx-auto grid max-w-md gap-4 p-6 pg-card-pop pg-interactive">
+      <div class="text-2xl font-extrabold" :style="{ fontFamily: 'var(--pg-font-heading)' }">注册</div>
       <el-input v-model="form.username" placeholder="用户名（≥6）" />
       <el-input v-model="form.email" placeholder="邮箱" />
       <el-input v-model="form.password" type="password" show-password placeholder="密码（≥6）" />
       <el-button type="primary" @click="submit">注册</el-button>
-      <div class="text-sm text-slate-600">
+      <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">
         已有账号？
-        <router-link class="text-blue-600" to="/login">登录</router-link>
+        <router-link class="pg-link" to="/login">登录</router-link>
       </div>
     </div>
   </AppShell>
 </template>
-

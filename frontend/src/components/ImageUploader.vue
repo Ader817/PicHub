@@ -25,15 +25,20 @@ async function uploadRequest(options) {
 </script>
 
 <template>
-  <el-upload
-    multiple
-    drag
-    :limit="20"
-    accept="image/jpeg,image/png,image/gif,image/webp"
-    :http-request="uploadRequest"
-    :show-file-list="false"
-  >
-    <div class="py-6 text-slate-600">拖拽图片到此处或点击上传（最多 20 张，每张 ≤ 10MB）</div>
-  </el-upload>
+  <div class="pg-card p-4">
+    <div class="flex flex-wrap items-center gap-2 pb-3">
+      <div class="pg-kicker text-base">上传</div>
+      <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">最多 20 张，每张 ≤ 10MB</div>
+    </div>
+    <el-upload
+      multiple
+      drag
+      :limit="20"
+      accept="image/jpeg,image/png,image/gif,image/webp"
+      :http-request="uploadRequest"
+      :show-file-list="false"
+    >
+      <div class="py-6 text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">拖拽图片到此处或点击上传</div>
+    </el-upload>
+  </div>
 </template>
-

@@ -32,7 +32,7 @@ onMounted(load)
 
 <template>
   <AppShell>
-    <div class="grid gap-4">
+    <div class="grid gap-6">
       <ImageUploader @uploaded="load" />
       <ImageCarousel :images="images" />
       <SearchPanel @results="setResults" />

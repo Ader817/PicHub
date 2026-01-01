@@ -43,12 +43,14 @@ onMounted(async () => {
       </div>
 
       <div class="grid gap-4 md:grid-cols-2">
-        <div class="overflow-hidden rounded-lg border bg-white">
+        <div class="overflow-hidden pg-card">
           <img class="w-full object-contain" :src="image.thumbnailMediumUrl || image.originalUrl" :alt="image.filename" />
         </div>
         <div class="grid gap-3">
-          <div class="rounded-lg border bg-white p-4 text-sm text-slate-700">
-            <div class="font-medium">{{ image.filename }}</div>
+          <div class="p-4 pg-card">
+            <div class="text-lg font-extrabold" :style="{ fontFamily: 'var(--pg-font-heading)' }">
+              {{ image.filename }}
+            </div>
             <div class="mt-2 grid gap-1">
               <div v-if="image.width && image.height">尺寸：{{ image.width }} x {{ image.height }}</div>
               <div v-if="image.metadata?.captureTime">拍摄时间：{{ image.metadata.captureTime }}</div>
@@ -62,4 +64,3 @@ onMounted(async () => {
     </div>
   </AppShell>
 </template>
-

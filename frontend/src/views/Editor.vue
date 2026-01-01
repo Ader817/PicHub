@@ -78,8 +78,8 @@ onMounted(async () => {
         <el-button type="primary" @click="save">保存副本</el-button>
       </div>
       <div class="grid gap-4 md:grid-cols-[1fr_340px]">
-        <div class="overflow-hidden rounded-lg border bg-white p-3">
-          <div class="overflow-hidden rounded" :style="{ filter: cssFilter }">
+        <div class="overflow-hidden p-3 pg-card">
+          <div class="overflow-hidden rounded-lg" :style="{ filter: cssFilter }">
             <VueCropper
               ref="cropperRef"
               :src="image.originalUrl"
@@ -91,34 +91,35 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="grid gap-4 rounded-lg border bg-white p-4">
-          <div class="text-sm font-medium text-slate-700">裁剪</div>
-          <div class="text-xs text-slate-500">拖拽裁剪框；滚轮缩放；拖动图片位置</div>
+        <div class="grid gap-4 p-4 pg-card">
+          <div class="text-base font-extrabold" :style="{ fontFamily: 'var(--pg-font-heading)' }">编辑</div>
+          <div class="text-sm font-bold">裁剪</div>
+          <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">拖拽裁剪框；滚轮缩放；拖动图片位置</div>
 
-          <div class="mt-2 text-sm font-medium text-slate-700">色调与调色</div>
+          <div class="mt-2 text-sm font-bold">色调与调色</div>
 
           <div class="grid gap-3">
             <div class="flex items-center justify-between">
-              <div class="text-sm text-slate-600">亮度</div>
-              <div class="text-xs text-slate-500">{{ Math.round(tune.brightness) }}%</div>
+              <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">亮度</div>
+              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.brightness) }}%</div>
             </div>
             <el-slider v-model="tune.brightness" :min="50" :max="150" :step="1" />
 
             <div class="flex items-center justify-between">
-              <div class="text-sm text-slate-600">对比度</div>
-              <div class="text-xs text-slate-500">{{ Math.round(tune.contrast) }}%</div>
+              <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">对比度</div>
+              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.contrast) }}%</div>
             </div>
             <el-slider v-model="tune.contrast" :min="50" :max="150" :step="1" />
 
             <div class="flex items-center justify-between">
-              <div class="text-sm text-slate-600">饱和度</div>
-              <div class="text-xs text-slate-500">{{ Math.round(tune.saturation) }}%</div>
+              <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">饱和度</div>
+              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.saturation) }}%</div>
             </div>
             <el-slider v-model="tune.saturation" :min="0" :max="200" :step="1" />
 
             <div class="flex items-center justify-between">
-              <div class="text-sm text-slate-600">色相（Hue）</div>
-              <div class="text-xs text-slate-500">{{ Math.round(tune.hue) }}°</div>
+              <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">色相（Hue）</div>
+              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.hue) }}°</div>
             </div>
             <el-slider v-model="tune.hue" :min="-180" :max="180" :step="1" />
           </div>

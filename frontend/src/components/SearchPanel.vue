@@ -43,7 +43,11 @@ async function doNlSearch() {
 </script>
 
 <template>
-  <div class="grid gap-3 rounded-lg border bg-white p-4">
+  <div class="grid gap-3 p-4 pg-card">
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="pg-kicker text-base">搜索</div>
+      <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">支持条件搜索与自然语言搜索</div>
+    </div>
     <div class="grid grid-cols-1 gap-3 md:grid-cols-5">
       <el-input v-model="criteria.location" placeholder="地点（模糊匹配）" />
       <el-input v-model="criteria.filename" placeholder="文件名（模糊）" />
@@ -60,4 +64,3 @@ async function doNlSearch() {
     </div>
   </div>
 </template>
-

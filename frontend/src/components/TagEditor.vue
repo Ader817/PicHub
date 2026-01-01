@@ -36,12 +36,16 @@ async function aiTags() {
 </script>
 
 <template>
-  <div class="grid gap-3 rounded-lg border bg-white p-4">
+  <div class="grid gap-3 p-4 pg-card">
+    <div class="flex items-center justify-between gap-2">
+      <div class="pg-kicker text-base">标签</div>
+      <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">自定义标签与 AI 标签</div>
+    </div>
     <div class="flex flex-wrap gap-2">
       <el-tag v-for="t in tags" :key="t.id" :type="t.type === 'ai' ? 'success' : 'info'" closable @close="removeTag(t.id)">
         {{ t.name }}
       </el-tag>
-      <div v-if="tags.length === 0" class="text-sm text-slate-500">暂无标签</div>
+      <div v-if="tags.length === 0" class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">暂无标签</div>
     </div>
     <div class="flex flex-wrap gap-2">
       <el-input v-model="newTag" placeholder="添加标签" class="w-56" @keyup.enter="addTag" />
@@ -50,4 +54,3 @@ async function aiTags() {
     </div>
   </div>
 </template>
-
