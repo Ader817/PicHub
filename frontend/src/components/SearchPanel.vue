@@ -57,8 +57,8 @@ async function doNlSearch() {
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <el-button type="primary" @click="doSearch">搜索</el-button>
-      <div class="ml-auto flex w-full gap-2 md:w-auto">
-        <el-input v-model="nlQuery" placeholder="自然语言搜索（如：上个月在北京拍的风景照）" />
+      <div class="ml-auto flex w-full gap-2 md:w-full md:max-w-2xl">
+        <el-input v-model="nlQuery" class="flex-1" placeholder="（如：在上海拍的风景照）" />
         <el-button @click="doNlSearch">NL 搜索</el-button>
       </div>
     </div>
