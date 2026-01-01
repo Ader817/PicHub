@@ -80,18 +80,12 @@ onMounted(async () => {
       <div class="grid gap-4 md:grid-cols-[1fr_340px]">
         <div class="overflow-hidden p-3 pg-card">
           <div class="overflow-hidden rounded-lg" :style="{ filter: cssFilter }">
-            <VueCropper
-              ref="cropperRef"
-              :src="image.originalUrl"
-              :view-mode="1"
-              :auto-crop-area="1"
-              :background="false"
-              :responsive="true"
-            />
+            <VueCropper ref="cropperRef" :src="image.originalUrl" :view-mode="1" :auto-crop-area="1" :background="false"
+              :responsive="true" />
           </div>
         </div>
 
-        <div class="grid gap-4 p-4 pg-card">
+        <div class="grid gap-4 p-4 pg-card self-start">
           <div class="text-base font-extrabold" :style="{ fontFamily: 'var(--pg-font-heading)' }">编辑</div>
           <div class="text-sm font-bold">裁剪</div>
           <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">拖拽裁剪框；滚轮缩放；拖动图片位置</div>
@@ -101,24 +95,27 @@ onMounted(async () => {
           <div class="grid gap-3">
             <div class="flex items-center justify-between">
               <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">亮度</div>
-              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.brightness) }}%</div>
+              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.brightness) }}%
+              </div>
             </div>
             <el-slider v-model="tune.brightness" :min="50" :max="150" :step="1" />
 
             <div class="flex items-center justify-between">
               <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">对比度</div>
-              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.contrast) }}%</div>
+              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.contrast) }}%
+              </div>
             </div>
             <el-slider v-model="tune.contrast" :min="50" :max="150" :step="1" />
 
             <div class="flex items-center justify-between">
               <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">饱和度</div>
-              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.saturation) }}%</div>
+              <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.saturation) }}%
+              </div>
             </div>
             <el-slider v-model="tune.saturation" :min="0" :max="200" :step="1" />
 
             <div class="flex items-center justify-between">
-              <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">色相（Hue）</div>
+              <div class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">色相</div>
               <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">{{ Math.round(tune.hue) }}°</div>
             </div>
             <el-slider v-model="tune.hue" :min="-180" :max="180" :step="1" />
