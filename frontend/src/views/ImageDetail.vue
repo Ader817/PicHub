@@ -54,8 +54,12 @@ onMounted(async () => {
             <div class="mt-2 grid gap-1">
               <div v-if="image.width && image.height">尺寸：{{ image.width }} x {{ image.height }}</div>
               <div v-if="image.metadata?.captureTime">拍摄时间：{{ image.metadata.captureTime }}</div>
+              <div v-if="image.uploadTime">上传时间：{{ image.uploadTime }}</div>
               <div v-if="image.metadata?.locationName">地点：{{ image.metadata.locationName }}</div>
-              <div v-if="image.metadata?.cameraModel">相机：{{ image.metadata.cameraModel }}</div>
+              <div v-if="image.metadata?.cameraModel">拍摄设备：{{ image.metadata.cameraModel }}</div>
+              <div v-if="image.metadata?.aperture">光圈：{{ image.metadata.aperture }}</div>
+              <div v-if="image.metadata?.shutterSpeed">快门：{{ image.metadata.shutterSpeed }}</div>
+              <div v-if="image.metadata?.iso">ISO：{{ image.metadata.iso }}</div>
             </div>
           </div>
           <TagEditor :image-id="image.id" :tags="image.tags" @updated="load" />

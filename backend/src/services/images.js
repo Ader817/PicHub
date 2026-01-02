@@ -95,9 +95,31 @@ export function extractExif(buffer) {
     const lon = typeof tags.GPSLongitude === "number" ? tags.GPSLongitude : null;
     const cameraModel = tags.Model ? String(tags.Model) : null;
 
-    return { captureTime, lat, lon, cameraModel };
+    const isoRaw = tags.ISO ?? tags.ISOSpeedRatings ?? null;
+    const iso = typeof isoRaw === "number" && Number.isFinite(isoRaw) ? Math.round(isoRaw) : null;
+
+    const fNumberRaw = tags.FNumber ?? tags.ApertureValue ?? null;
+    const fNumber = typeof fNumberRaw === "number" && Number.isFinite(fNumberRaw) ? fNumberRaw : null;
+    const aperture = fNumber ? `f/${Number(fNumber.toFixed(1))}` : null;
+
+    function formatExposure(seconds) {
+      if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds <= 0) return null;
+      if (seconds >= 1) return `${Number(seconds.toFixed(2))}s`;
+      const denom = Math.round(1 / seconds);
+      if (denom > 0) {
+        const approx = 1 / denom;
+        const relErr = Math.abs(approx - seconds) / seconds;
+        if (relErr < 0.02) return `1/${denom}s`;
+      }
+      return `${Number(seconds.toFixed(4))}s`;
+    }
+
+    const exposureRaw = tags.ExposureTime ?? null;
+    const shutterSpeed = formatExposure(exposureRaw);
+
+    return { captureTime, lat, lon, cameraModel, aperture, shutterSpeed, iso };
   } catch {
-    return { captureTime: null, lat: null, lon: null, cameraModel: null };
+    return { captureTime: null, lat: null, lon: null, cameraModel: null, aperture: null, shutterSpeed: null, iso: null };
   }
 }
 
