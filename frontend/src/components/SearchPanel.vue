@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { api } from '../lib/api'
 
-const emit = defineEmits(['results'])
+const emit = defineEmits(['results', 'filters'])
 
 const criteria = reactive({
   location: '',
@@ -28,6 +28,7 @@ async function doSearch() {
     tags: tags.length ? tags : undefined,
   }
   const { data } = await api.post('/images/search', payload)
+  emit('filters', { mode: 'criteria', criteria: data?.criteria || payload })
   emit('results', data.images || [])
 }
 
@@ -35,6 +36,7 @@ async function doNlSearch() {
   if (!nlQuery.value.trim()) return
   try {
     const { data } = await api.post('/images/nl-search', { query: nlQuery.value })
+    emit('filters', { mode: 'nl', query: data?.query || nlQuery.value, criteria: data?.criteria || null })
     emit('results', data.images || [])
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || '自然语言搜索失败（可能未配置 GEMINI_API_KEY）')
