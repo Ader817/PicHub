@@ -50,6 +50,9 @@ const filterChips = computed(() => {
   if (c.minWidth) chips.push({ label: '最小宽度', value: String(c.minWidth) })
   if (c.minHeight) chips.push({ label: '最小高度', value: String(c.minHeight) })
   if (Array.isArray(c.tags) && c.tags.length) chips.push({ label: '标签', value: c.tags.join(', ') })
+  if (Array.isArray(c.mustTags) && c.mustTags.length) chips.push({ label: '必含标签', value: c.mustTags.join(', ') })
+  if (Array.isArray(c.shouldTags) && c.shouldTags.length) chips.push({ label: '相关标签', value: c.shouldTags.join(', ') })
+  if (Array.isArray(c.excludeTags) && c.excludeTags.length) chips.push({ label: '排除标签', value: c.excludeTags.join(', ') })
   if (c.timeRange?.start || c.timeRange?.end) {
     chips.push({ label: '拍摄时间', value: `${c.timeRange?.start || '…'} ~ ${c.timeRange?.end || '…'}` })
   }

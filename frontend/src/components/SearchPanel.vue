@@ -38,8 +38,9 @@ async function doNlSearch() {
     const { data } = await api.post('/images/nl-search', { query: nlQuery.value })
     if (data?.error) {
       const msg = String(data.error)
+      const level = data?.errorLevel === 'warning' ? 'warning' : 'error'
       ElMessage({
-        type: 'error',
+        type: level,
         message: msg.length > 400 ? `${msg.slice(0, 400)}…` : msg,
         showClose: true,
         duration: 8000,
@@ -68,8 +69,8 @@ async function doNlSearch() {
     </div>
     <div class="flex flex-wrap items-center gap-2">
       <el-button type="primary" @click="doSearch">搜索</el-button>
-      <div class="ml-auto flex w-full gap-2 md:w-full md:max-w-2xl">
-        <el-input v-model="nlQuery" class="flex-1" placeholder="（如：在浙江拍的风景照）" />
+      <div class="ml-auto flex w-full flex-1 gap-2 md:w-auto">
+        <el-input v-model="nlQuery" class="min-w-0 flex-1" placeholder="（例如：我想找风景照 / 2025 年拍的照片）" />
         <el-button @click="doNlSearch">自然语言搜索</el-button>
       </div>
     </div>

@@ -15,6 +15,7 @@ function normalizeGeminiModelName(model) {
 
   // Normalize some common mistaken names we saw in configs/logs
   if (lower === "gemini-3.0-flash") return "gemini-3-flash-preview";
+  if (lower === "gemini-3-flash") return "gemini-3-flash-preview";
   if (lower === "gemini-3.0-pro") return "gemini-3-pro";
 
   return raw;
@@ -33,12 +34,13 @@ function extractFirstJsonObject(text) {
   }
 }
 
-async function generateContent({ apiKey, model, contents }) {
-  const apiVersion = getEnv("GEMINI_API_VERSION", "v1alpha");
+async function generateContent({ apiKey, model, contents, apiVersionOverride, _retried = false }) {
+  const apiVersion = String(apiVersionOverride || getEnv("GEMINI_API_VERSION", "v1alpha")).trim() || "v1alpha";
   const url = new URL(`https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent`);
 
+  let res;
   try {
-    const res = await fetch(url, {
+    res = await fetch(url, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -47,22 +49,31 @@ async function generateContent({ apiKey, model, contents }) {
       },
       body: JSON.stringify({ contents }),
     });
-
-    if (!res.ok) {
-      const msg = await res.text().catch(() => "");
-      const err = new Error(`Gemini API error: ${res.status} ${msg}`.trim());
-      err.statusCode = 502;
-      throw err;
-    }
-
-    return res.json();
   } catch (e) {
-    const err = new Error(
-      `Gemini request failed (network/TLS). If you are in a restricted network, Google API may be unreachable. Original: ${e?.message || e}`
-    );
+    const err = new Error(`Gemini request failed (network). ${e?.message || e}`.trim());
     err.statusCode = 502;
+    err.expose = true;
     throw err;
   }
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+
+    // Practical fallback: some "gemini-3-*" preview models are only available on v1alpha.
+    // If user configured v1 and hits a "not found for API version v1" 404, retry once with v1alpha.
+    if (!_retried && res.status === 404 && apiVersion === "v1" && String(model).startsWith("gemini-3")) {
+      return generateContent({ apiKey, model, contents, apiVersionOverride: "v1alpha", _retried: true });
+    }
+
+    const err = new Error(
+      `Gemini API error: ${res.status} ${msg}`.trim() + ` (apiVersion=${apiVersion}, model=${model})`
+    );
+    err.statusCode = 502;
+    err.expose = true;
+    throw err;
+  }
+
+  return res.json();
 }
 
 export async function geminiVisionTags({ apiKey, mimeType, base64 }) {
@@ -101,30 +112,62 @@ export async function geminiVisionTags({ apiKey, mimeType, base64 }) {
   };
 }
 
-export async function geminiParseNlSearch({ apiKey, query }) {
+export async function geminiParseNlSearch({ apiKey, query, tagVocabulary }) {
   const model =
     normalizeGeminiModelName(getEnv("GEMINI_TEXT_MODEL", "gemini3flash")) || "gemini-3-flash-preview";
 
+  const vocabList = Array.isArray(tagVocabulary)
+    ? tagVocabulary
+        .map((t) => String(t || "").trim())
+        .filter(Boolean)
+        .slice(0, 300)
+    : [];
+
   const prompt = `
-请将以下自然语言查询转换为JSON格式的搜索条件，不要包含其他文字。
+你是图片检索助手。请将以下自然语言查询转换为 JSON 格式的搜索条件，不要包含其他文字。
 查询：${query}
 
 可用字段：
 - timeRange: { start: "YYYY-MM-DD", end: "YYYY-MM-DD" } （按拍摄时间）
 - uploadTimeRange: { start: "YYYY-MM-DD", end: "YYYY-MM-DD" } （按上传时间）
-- tags: string[]
+- mustTags: string[] （必须包含的标签）
+- shouldTags: string[] （相关标签，用于提升召回与排序）
+- excludeTags: string[] （必须排除的标签）
 - location: string
 - minWidth: number
 - minHeight: number
 - filename: string
 
+标签规则：
+- 标签名必须从“可选标签列表”中选择；不要发明新的标签名。
+- 对于“风景/人物/动物/校徽”等概念词，优先填充 shouldTags（选择多个相关标签），而不是只输出一个过于严格的标签。
+- shouldTags 最多 12 个，mustTags 最多 6 个，excludeTags 最多 6 个。
+
+可选标签列表（必须从这里选择，若没有合适的请输出空数组）：
+${vocabList.length ? vocabList.map((t) => `- ${t}`).join("\n") : "- （当前用户暂无标签词表）"}
+
 返回示例：
-{"timeRange":{"start":"2025-12-01","end":"2025-12-31"},"tags":["风景"],"location":"北京"}
+{"timeRange":{"start":"2025-12-01","end":"2025-12-31"},"mustTags":["地点/北京"],"shouldTags":["风景","天空","建筑"],"excludeTags":["人物"]}
 `.trim();
 
   const contents = [{ role: "user", parts: [{ text: prompt }] }];
-  const data = await generateContent({ apiKey, model, contents }).catch(() => null);
-  if (!data) return null;
+  const data = await generateContent({ apiKey, model, contents });
   const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join("\n") || "";
-  return extractFirstJsonObject(text);
+  const parsed = extractFirstJsonObject(text);
+  if (!parsed) {
+    const preview = text.replace(/\s+/g, " ").slice(0, 160);
+    const err = new Error(`Gemini NL parse failed: model did not return valid JSON. Preview: ${preview || "(empty)"}`);
+    err.statusCode = 502;
+    throw err;
+  }
+
+  const coerceArray = (v) => (Array.isArray(v) ? v.map(String).map((s) => s.trim()).filter(Boolean) : []);
+  return {
+    ...parsed,
+    mustTags: coerceArray(parsed.mustTags),
+    shouldTags: coerceArray(parsed.shouldTags),
+    excludeTags: coerceArray(parsed.excludeTags),
+    // Back-compat: if the model still outputs `tags`, treat it as shouldTags (soft match).
+    tags: Array.isArray(parsed.tags) ? coerceArray(parsed.tags) : parsed.tags,
+  };
 }
