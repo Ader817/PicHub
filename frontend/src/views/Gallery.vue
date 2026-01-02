@@ -41,7 +41,7 @@ const filterChips = computed(() => {
 
   if (f.mode === 'nl') {
     if (f.query) chips.push({ label: 'NL', value: f.query })
-    if (!f.criteria) chips.push({ label: '解析', value: '失败（可尝试条件搜索）' })
+    if (!f.criteria) chips.push({ label: '解析', value: f.error ? `失败：${String(f.error).slice(0, 80)}` : '失败（可尝试条件搜索）' })
   }
 
   const c = f.criteria || {}

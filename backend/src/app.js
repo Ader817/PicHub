@@ -8,6 +8,7 @@ import YAML from "yamljs";
 import { uploadsDir } from "./config/paths.js";
 import { apiRouter } from "./routes/index.js";
 import { errorHandler, notFound } from "./middlewares/error.js";
+import { handleValidationErrors } from "./middlewares/validation.js";
 
 export function createApp() {
   const app = express();
@@ -26,6 +27,7 @@ export function createApp() {
   app.use("/api", apiRouter);
 
   app.use(notFound);
+  app.use(handleValidationErrors);
   app.use(errorHandler);
 
   return app;

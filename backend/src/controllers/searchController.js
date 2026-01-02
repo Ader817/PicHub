@@ -12,8 +12,8 @@ const searchSchema = z
     uploadTimeRange: z.object({ start: z.string().optional(), end: z.string().optional() }).optional(),
     tags: z.array(z.string()).optional(),
     location: z.string().optional(),
-    minWidth: z.number().optional(),
-    minHeight: z.number().optional(),
+    minWidth: z.coerce.number().optional(),
+    minHeight: z.coerce.number().optional(),
     filename: z.string().optional(),
   })
   .passthrough();
@@ -39,10 +39,8 @@ function buildRangeWhere({ start, end }) {
   return Object.keys(where).length ? where : null;
 }
 
-export const search = asyncHandler(async (req, res) => {
-  const criteria = searchSchema.parse(req.body || {});
-
-  const where = { user_id: req.auth.userId };
+async function runSearch({ userId, criteria }) {
+  const where = { user_id: userId };
   const metaWhere = {};
 
   const uploadRange = criteria.uploadTimeRange ? buildRangeWhere(criteria.uploadTimeRange) : null;
@@ -71,7 +69,22 @@ export const search = asyncHandler(async (req, res) => {
   }
 
   const images = await Image.findAll({ where, include, order: [["upload_time", "DESC"]], distinct: true });
-  res.json({ images: images.map(serializeImage) });
+
+  // Filter in JavaScript for AND logic on tags
+  if (criteria.tags?.length > 1) {
+    return images.filter((img) => {
+      const tagNames = img.Tags?.map((t) => t.name) || [];
+      return criteria.tags.every((tag) => tagNames.includes(tag));
+    });
+  }
+
+  return images;
+}
+
+export const search = asyncHandler(async (req, res) => {
+  const criteria = searchSchema.parse(req.body || {});
+  const images = await runSearch({ userId: req.auth.userId, criteria });
+  res.json({ criteria, images: images.map(serializeImage) });
 });
 
 const nlSchema = z.object({ query: z.string().min(1) });
@@ -81,11 +94,19 @@ export const nlSearch = asyncHandler(async (req, res) => {
   const apiKey = getEnv("GEMINI_API_KEY", "");
   if (!apiKey) return res.status(501).json({ message: "GEMINI_API_KEY not configured" });
 
-  const parsed = await geminiParseNlSearch({ apiKey, query });
-  if (!parsed) return res.json({ criteria: null, images: [] });
+  let parsed = null;
+  try {
+    parsed = await geminiParseNlSearch({ apiKey, query });
+  } catch (e) {
+    return res.json({
+      query,
+      criteria: null,
+      images: [],
+      error: e?.message || String(e),
+    });
+  }
 
-  // 复用 search 逻辑：直接把解析出的字段作为 criteria 传递
-  req.body = parsed;
-  return search(req, res);
+  const criteria = searchSchema.parse(parsed || {});
+  const images = await runSearch({ userId: req.auth.userId, criteria });
+  res.json({ query, criteria, images: images.map(serializeImage), error: null });
 });
-

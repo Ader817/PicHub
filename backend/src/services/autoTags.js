@@ -14,7 +14,7 @@ function buildCityTagName(province, city) {
 
 async function ensureTag({ name, now }) {
   let tag = await Tag.findOne({ where: { name } });
-  if (!tag) tag = await Tag.create({ name, tag_type: "custom", created_at: now });
+  if (!tag) tag = await Tag.create({ name, tag_type: "auto", created_at: now });
   return tag;
 }
 

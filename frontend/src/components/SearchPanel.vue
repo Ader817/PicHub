@@ -36,7 +36,16 @@ async function doNlSearch() {
   if (!nlQuery.value.trim()) return
   try {
     const { data } = await api.post('/images/nl-search', { query: nlQuery.value })
-    emit('filters', { mode: 'nl', query: data?.query || nlQuery.value, criteria: data?.criteria || null })
+    if (data?.error) {
+      const msg = String(data.error)
+      ElMessage({
+        type: 'error',
+        message: msg.length > 400 ? `${msg.slice(0, 400)}…` : msg,
+        showClose: true,
+        duration: 8000,
+      })
+    }
+    emit('filters', { mode: 'nl', query: data?.query || nlQuery.value, criteria: data?.criteria || null, error: data?.error || null })
     emit('results', data.images || [])
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || '自然语言搜索失败（可能未配置 GEMINI_API_KEY）')
@@ -60,7 +69,7 @@ async function doNlSearch() {
     <div class="flex flex-wrap items-center gap-2">
       <el-button type="primary" @click="doSearch">搜索</el-button>
       <div class="ml-auto flex w-full gap-2 md:w-full md:max-w-2xl">
-        <el-input v-model="nlQuery" class="flex-1" placeholder="（如：在上海拍的风景照）" />
+        <el-input v-model="nlQuery" class="flex-1" placeholder="（如：在浙江拍的风景照）" />
         <el-button @click="doNlSearch">自然语言搜索</el-button>
       </div>
     </div>

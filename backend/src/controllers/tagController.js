@@ -15,7 +15,18 @@ export const listTags = asyncHandler(async (req, res) => {
   });
   const uniq = new Map();
   for (const t of tags) uniq.set(t.id, t);
-  res.json({ tags: [...uniq.values()].map((t) => ({ id: t.id, name: t.name, type: t.tag_type })) });
+  const tagsArray = [...uniq.values()].map((t) => ({
+    id: t.id,
+    name: t.name,
+    type: t.tag_type,
+    count: t.Images?.length || 0,
+  }));
+  // Sort by count (descending) then by name
+  tagsArray.sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.name.localeCompare(b.name);
+  });
+  res.json({ tags: tagsArray });
 });
 
 export const addTagToImage = asyncHandler(async (req, res) => {
