@@ -21,6 +21,12 @@ function normalizeGeminiModelName(model) {
   return raw;
 }
 
+function getGeminiTimeoutMs() {
+  const raw = Number(getEnv("GEMINI_TIMEOUT_MS", "12000"));
+  if (!Number.isFinite(raw)) return 12000;
+  return Math.max(1000, Math.min(raw, 60000));
+}
+
 function extractFirstJsonObject(text) {
   if (!text) return null;
   const start = text.indexOf("{");
@@ -38,6 +44,10 @@ async function generateContent({ apiKey, model, contents, apiVersionOverride, _r
   const apiVersion = String(apiVersionOverride || getEnv("GEMINI_API_VERSION", "v1alpha")).trim() || "v1alpha";
   const url = new URL(`https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent`);
 
+  const controller = new AbortController();
+  const timeoutMs = getGeminiTimeoutMs();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   let res;
   try {
     res = await fetch(url, {
@@ -48,12 +58,21 @@ async function generateContent({ apiKey, model, contents, apiVersionOverride, _r
         "x-goog-api-key": apiKey,
       },
       body: JSON.stringify({ contents }),
+      signal: controller.signal,
     });
   } catch (e) {
-    const err = new Error(`Gemini request failed (network). ${e?.message || e}`.trim());
+    const isAbort = e?.name === "AbortError" || /aborted/i.test(String(e?.message || ""));
+    const err = new Error(
+      isAbort
+        ? `Gemini request timed out after ${timeoutMs}ms`
+        : `Gemini request failed (network). ${e?.message || e}`.trim()
+    );
     err.statusCode = 502;
     err.expose = true;
+    clearTimeout(timer);
     throw err;
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!res.ok) {
