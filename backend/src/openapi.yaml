@@ -41,4 +41,136 @@ paths:
       responses:
         "200":
           description: OK
-
+  /images/{id}:
+    get:
+      summary: Get image detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not found
+    delete:
+      summary: Delete image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not found
+  /images/{id}/edit:
+    post:
+      summary: Save edited copy (upload new file)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Validation failed
+        "404":
+          description: Not found
+  /images/{id}/ai-tags:
+    post:
+      summary: Generate AI tags for image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "501":
+          description: GEMINI_API_KEY not configured
+  /images/{id}/tags:
+    post:
+      summary: Add tag to image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Validation failed
+  /images/{id}/tags/{tagId}:
+    delete:
+      summary: Remove tag from image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+  /images/search:
+    post:
+      summary: Condition search images
+      responses:
+        "200":
+          description: OK
+  /images/nl-search:
+    post:
+      summary: Natural language search (Gemini parses to criteria)
+      responses:
+        "200":
+          description: OK
+        "501":
+          description: GEMINI_API_KEY not configured
+  /tags:
+    get:
+      summary: List tags (current user)
+      responses:
+        "200":
+          description: OK
+  /carousel:
+    get:
+      summary: List carousel images (current user)
+      responses:
+        "200":
+          description: OK
+    post:
+      summary: Add image to carousel
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Limit reached
+  /carousel/{imageId}:
+    delete:
+      summary: Remove image from carousel
+      parameters:
+        - name: imageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
