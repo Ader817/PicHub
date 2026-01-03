@@ -38,7 +38,7 @@
 /* If you place self-hosted font files under frontend/public/fonts, these will be used. */
 @font-face {
   font-family: "Outfit";
-  src: url("/fonts/Outfit[wght].ttf") format("truetype");
+  src: url("/fonts/Outfit[wght].woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -46,7 +46,7 @@
 
 @font-face {
   font-family: "Plus Jakarta Sans";
-  src: url("/fonts/PlusJakartaSans[wght].ttf") format("truetype");
+  src: url("/fonts/PlusJakartaSans[wght].woff2") format("woff2");
   font-weight: 200 800;
   font-style: normal;
   font-display: swap;
