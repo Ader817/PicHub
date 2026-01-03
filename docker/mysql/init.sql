@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS image_metadata (
 CREATE TABLE IF NOT EXISTS tag (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   name VARCHAR(50) NOT NULL UNIQUE,
-  tag_type ENUM('custom', 'ai') NOT NULL,
+  tag_type ENUM('custom', 'ai', 'auto') NOT NULL,
   created_at DATETIME NOT NULL,
   INDEX idx_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

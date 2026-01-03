@@ -6,10 +6,9 @@ export function defineTag(sequelize) {
     {
       id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
       name: { type: DataTypes.STRING(50), allowNull: false, unique: true },
-      tag_type: { type: DataTypes.ENUM("custom", "ai"), allowNull: false },
+      tag_type: { type: DataTypes.ENUM("custom", "ai", "auto"), allowNull: false },
       created_at: { type: DataTypes.DATE, allowNull: false },
     },
     { tableName: "tag", timestamps: false }
   );
 }
-
