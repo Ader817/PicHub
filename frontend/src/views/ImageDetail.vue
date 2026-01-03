@@ -12,6 +12,20 @@ const image = ref(null)
 
 const imageId = computed(() => Number(route.params.id))
 
+function formatDateTime(value) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (!Number.isFinite(d.getTime())) return String(value)
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(d)
+}
+
 async function load() {
   const { data } = await api.get(`/images/${imageId.value}`)
   image.value = data.image
@@ -53,8 +67,8 @@ onMounted(async () => {
             </div>
             <div class="mt-2 grid gap-1">
               <div v-if="image.width && image.height">尺寸：{{ image.width }} x {{ image.height }}</div>
-              <div v-if="image.metadata?.captureTime">拍摄时间：{{ image.metadata.captureTime }}</div>
-              <div v-if="image.uploadTime">上传时间：{{ image.uploadTime }}</div>
+              <div v-if="image.metadata?.captureTime">拍摄时间：{{ formatDateTime(image.metadata.captureTime) }}</div>
+              <div v-if="image.uploadTime">上传时间：{{ formatDateTime(image.uploadTime) }}</div>
               <div v-if="image.metadata?.locationName">地点：{{ image.metadata.locationName }}</div>
               <div v-if="image.metadata?.cameraModel">拍摄设备：{{ image.metadata.cameraModel }}</div>
               <div v-if="image.metadata?.aperture">光圈：{{ image.metadata.aperture }}</div>

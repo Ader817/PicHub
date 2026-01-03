@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue'
+
 const props = defineProps({
   images: { type: Array, required: true },
   carouselIds: { type: Array, default: () => [] },
@@ -6,8 +8,10 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle-carousel'])
 
+const carouselSet = computed(() => new Set(props.carouselIds || []))
+
 function inCarousel(id) {
-  return props.carouselIds.includes(id)
+  return carouselSet.value.has(id)
 }
 
 function toggle(img) {
@@ -40,6 +44,7 @@ function toggle(img) {
             border: '2px solid var(--pg-foreground)',
           }"
           :title="inCarousel(img.id) ? '移出轮播' : '加入轮播'"
+          :aria-label="inCarousel(img.id) ? '移出轮播' : '加入轮播'"
           @click.prevent.stop="toggle(img)"
         >
           {{ inCarousel(img.id) ? '★' : '☆' }}

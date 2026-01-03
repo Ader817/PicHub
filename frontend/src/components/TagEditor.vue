@@ -42,7 +42,13 @@ async function aiTags() {
       <div class="text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">自定义标签与 AI 标签</div>
     </div>
     <div class="flex flex-wrap gap-2">
-      <el-tag v-for="t in tags" :key="t.id" :type="t.type === 'ai' ? 'success' : 'info'" closable @close="removeTag(t.id)">
+      <el-tag
+        v-for="t in tags"
+        :key="t.id"
+        :type="t.type === 'ai' ? 'success' : t.type === 'auto' ? 'warning' : 'info'"
+        closable
+        @close="removeTag(t.id)"
+      >
         {{ t.name }}
       </el-tag>
       <div v-if="tags.length === 0" class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">暂无标签</div>
