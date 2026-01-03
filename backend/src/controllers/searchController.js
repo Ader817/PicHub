@@ -57,7 +57,7 @@ function imageMatchCount(image, tags) {
   return tags.reduce((acc, t) => acc + (imageMatchesTag(image, t) ? 1 : 0), 0);
 }
 
-function applyTagFilterAndScore({ images, mustTags, shouldTags, excludeTags, shouldMinMatch }) {
+function applyTagFilterAndScoreScored({ images, mustTags, shouldTags, excludeTags, shouldMinMatch }) {
   const must = Array.isArray(mustTags) ? mustTags.filter(Boolean) : [];
   const should = Array.isArray(shouldTags) ? shouldTags.filter(Boolean) : [];
   const exclude = Array.isArray(excludeTags) ? excludeTags.filter(Boolean) : [];
@@ -79,7 +79,11 @@ function applyTagFilterAndScore({ images, mustTags, shouldTags, excludeTags, sho
     return new Date(b.img.upload_time).getTime() - new Date(a.img.upload_time).getTime();
   });
 
-  return filtered.map((x) => x.img);
+  return filtered;
+}
+
+function applyTagFilterAndScore({ images, mustTags, shouldTags, excludeTags, shouldMinMatch }) {
+  return applyTagFilterAndScoreScored({ images, mustTags, shouldTags, excludeTags, shouldMinMatch }).map((x) => x.img);
 }
 
 function expandToVocabulary({ rawTags, vocabulary, maxOut = 18 }) {
@@ -249,7 +253,7 @@ export const nlSearch = asyncHandler(async (req, res) => {
     });
   }
 
-  const images = applyTagFilterAndScore({
+  const scored = applyTagFilterAndScoreScored({
     images: baseImages,
     mustTags: resolvedMust,
     shouldTags: resolvedShould,
@@ -272,7 +276,10 @@ export const nlSearch = asyncHandler(async (req, res) => {
         excludeTags: rawExcludeTags,
       },
     },
-    images: images.map(serializeImage),
+    images: scored.map(({ img, score }) => ({
+      ...serializeImage(img),
+      matchScore: resolvedShould.length ? score : undefined,
+    })),
     error: null,
     errorLevel: null,
   });

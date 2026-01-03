@@ -11,6 +11,8 @@ import { api } from '../lib/api'
 const images = ref([])
 const loading = ref(false)
 const activeFilters = ref(null)
+const carouselImages = ref([])
+const carouselIds = ref([])
 
 async function load() {
   loading.value = true
@@ -25,12 +27,43 @@ async function load() {
   }
 }
 
+async function loadCarousel() {
+  try {
+    const { data } = await api.get('/carousel')
+    carouselImages.value = data.images || []
+    carouselIds.value = carouselImages.value.map((x) => x.id)
+  } catch (e) {
+    // When DB schema isn't migrated yet, backend may 500; don't break the whole gallery.
+    carouselImages.value = []
+    carouselIds.value = []
+    console.warn('Failed to load carousel:', e?.response?.data?.message || e?.message || e)
+  }
+}
+
 function setResults(list) {
   images.value = list
 }
 
 function setFilters(info) {
   activeFilters.value = info || null
+}
+
+async function toggleCarousel({ image, next }) {
+  try {
+    if (next) {
+      await api.post('/carousel', { imageId: image.id })
+    } else {
+      await api.delete(`/carousel/${image.id}`)
+    }
+    await loadCarousel()
+  } catch (e) {
+    const status = e?.response?.status
+    const data = e?.response?.data
+    const messageFromServer =
+      typeof data === 'string' ? data.slice(0, 160) : (data?.message ? String(data.message) : null)
+    const hint = status === 404 ? '（后端可能未重启/未更新）' : ''
+    ElMessage.error(`操作失败${status ? `(${status})` : ''}${hint}${messageFromServer ? `：${messageFromServer}` : ''}`)
+  }
 }
 
 const filterChips = computed(() => {
@@ -45,6 +78,9 @@ const filterChips = computed(() => {
   }
 
   const c = f.criteria || {}
+  if (f.mode === 'nl' && c.tagStrategy === 'soft' && Array.isArray(c.shouldTags) && c.shouldTags.length) {
+    chips.push({ label: '排序', value: '相关度（相关标签命中数）' })
+  }
   if (c.location) chips.push({ label: '地点', value: c.location })
   if (c.filename) chips.push({ label: '文件名', value: c.filename })
   if (c.minWidth) chips.push({ label: '最小宽度', value: String(c.minWidth) })
@@ -70,13 +106,21 @@ const emptyDescription = computed(() => {
 })
 
 onMounted(load)
+onMounted(loadCarousel)
 </script>
 
 <template>
   <AppShell>
     <div class="grid gap-6">
-      <ImageUploader @uploaded="load" />
-      <ImageCarousel :images="images" />
+      <ImageUploader
+        @uploaded="
+          () => {
+            load()
+            loadCarousel()
+          }
+        "
+      />
+      <ImageCarousel :images="images" :selected-images="carouselImages" />
       <SearchPanel @results="setResults" @filters="setFilters" />
 
       <div v-if="activeFilters" class="pg-card p-4">
@@ -93,7 +137,7 @@ onMounted(load)
 
       <el-skeleton :loading="loading" animated>
         <template #default>
-          <ImageGrid v-if="images.length" :images="images" />
+          <ImageGrid v-if="images.length" :images="images" :carousel-ids="carouselIds" @toggle-carousel="toggleCarousel" />
           <div v-else class="pg-card p-8">
             <el-empty :description="emptyDescription">
               <div v-if="activeFilters && filterChips.length" class="mt-2 flex flex-wrap justify-center gap-2">
