@@ -3,6 +3,7 @@ import { authRouter } from "./auth.js";
 import { imagesRouter } from "./images.js";
 import { tagsRouter } from "./tags.js";
 import { searchRouter } from "./search.js";
+import { carouselRouter } from "./carousel.js";
 
 export const apiRouter = Router();
 
@@ -11,3 +12,4 @@ apiRouter.use("/auth", authRouter);
 apiRouter.use("/images", imagesRouter);
 apiRouter.use("/images", searchRouter);
 apiRouter.use("/tags", tagsRouter);
+apiRouter.use("/carousel", carouselRouter);

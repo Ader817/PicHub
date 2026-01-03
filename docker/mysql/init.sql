@@ -69,3 +69,15 @@ CREATE TABLE IF NOT EXISTS image_tag (
   FOREIGN KEY (image_id) REFERENCES image(id) ON DELETE CASCADE,
   FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS carousel_item (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  image_id BIGINT NOT NULL,
+  created_at DATETIME NOT NULL,
+  UNIQUE KEY uk_carousel_user_image (user_id, image_id),
+  INDEX idx_carousel_user_id (user_id),
+  INDEX idx_carousel_image_id (image_id),
+  FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+  FOREIGN KEY (image_id) REFERENCES image(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -4,12 +4,19 @@ import { useRouter } from 'vue-router'
 
 const props = defineProps({
   images: { type: Array, required: true },
+  selectedImages: { type: Array, default: () => [] },
   maxItems: { type: Number, default: 8 },
 })
 
 const router = useRouter()
 
-const items = computed(() => (props.images || []).slice(0, props.maxItems))
+const items = computed(() => {
+  const selected = Array.isArray(props.selectedImages) ? props.selectedImages : []
+  if (selected.length) return selected.slice(0, 20)
+  return (props.images || []).slice(0, props.maxItems)
+})
+
+const isSelectedMode = computed(() => Array.isArray(props.selectedImages) && props.selectedImages.length > 0)
 
 const height = ref('240px')
 
@@ -35,7 +42,12 @@ function go(img) {
 <template>
   <div v-if="items.length" class="overflow-hidden pg-card">
     <div class="border-b-2 px-4 py-3 text-sm font-extrabold" :style="{ borderColor: 'var(--pg-foreground)' }">
-      轮播展示
+      <div class="flex flex-wrap items-center gap-2">
+        <div>轮播展示</div>
+        <div class="text-xs font-semibold" :style="{ color: 'var(--pg-muted-foreground)' }">
+          {{ isSelectedMode ? '精选轮播（你已选择）' : '默认轮播（从下方点 ★ 选择最多 20 张）' }}
+        </div>
+      </div>
     </div>
     <el-carousel :height="height" indicator-position="outside" arrow="hover" :interval="4000">
       <el-carousel-item v-for="img in items" :key="img.id">
