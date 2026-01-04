@@ -189,11 +189,14 @@ export const nlSearch = asyncHandler(async (req, res) => {
   try {
     parsed = await geminiParseNlSearch({ apiKey, query, tagVocabulary });
   } catch (e) {
+    const isTimeout = e?.code === "GEMINI_TIMEOUT" || e?.statusCode === 504 || /超时/i.test(String(e?.message || ""));
     return res.json({
       query,
       criteria: null,
       images: [],
-      error: e?.message || String(e),
+      error: isTimeout ? e?.message || "Gemini 调用超时，请稍后重试" : e?.message || String(e),
+      errorCode: isTimeout ? "GEMINI_TIMEOUT" : e?.code || "GEMINI_ERROR",
+      errorLevel: "error",
     });
   }
 

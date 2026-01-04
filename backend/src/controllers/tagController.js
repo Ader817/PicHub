@@ -71,7 +71,15 @@ export const generateAiTags = asyncHandler(async (req, res) => {
   const buffer = await readFile(abs);
   const base64 = buffer.toString("base64");
 
-  const tags = await geminiVisionTags({ apiKey, mimeType: image.mime_type, base64 });
+  let tags;
+  try {
+    tags = await geminiVisionTags({ apiKey, mimeType: image.mime_type, base64 });
+  } catch (e) {
+    if (e?.code === "GEMINI_TIMEOUT" || e?.statusCode === 504) {
+      return res.status(504).json({ message: e?.message || "Gemini 调用超时，请稍后重试" });
+    }
+    throw e;
+  }
 
   // Avoid creating tags that conflict with auto time/location namespace.
   const blockedPrefixes = ["时间/", "地点/"];

@@ -62,7 +62,10 @@ async function doNlSearch() {
     emit('filters', { mode: 'nl', query: data?.query || nlQuery.value, criteria: data?.criteria || null, error: data?.error || null })
     emit('results', data.images || [])
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || '自然语言搜索失败（可能未配置 GEMINI_API_KEY）')
+    const status = e?.response?.status
+    const msg = e?.response?.data?.message
+    if (status === 501) ElMessage.error(msg || 'GEMINI_API_KEY 未配置')
+    else ElMessage.error(msg || '自然语言搜索失败（网络/超时）')
   } finally {
     nlLoading.value = false
   }

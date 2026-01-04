@@ -62,12 +62,17 @@ async function generateContent({ apiKey, model, contents, apiVersionOverride, _r
     });
   } catch (e) {
     const isAbort = e?.name === "AbortError" || /aborted/i.test(String(e?.message || ""));
-    const err = new Error(
-      isAbort
-        ? `Gemini request timed out after ${timeoutMs}ms`
-        : `Gemini request failed (network). ${e?.message || e}`.trim()
-    );
-    err.statusCode = 502;
+    const err = new Error();
+    if (isAbort) {
+      err.message = `Gemini 调用超时（${timeoutMs}ms），请稍后重试`;
+      err.statusCode = 504;
+      err.code = "GEMINI_TIMEOUT";
+      err.timeoutMs = timeoutMs;
+    } else {
+      err.message = `Gemini 请求失败（网络/TLS）。${e?.message || e}`.trim();
+      err.statusCode = 502;
+      err.code = "GEMINI_NETWORK";
+    }
     err.expose = true;
     clearTimeout(timer);
     throw err;
@@ -88,6 +93,7 @@ async function generateContent({ apiKey, model, contents, apiVersionOverride, _r
       `Gemini API error: ${res.status} ${msg}`.trim() + ` (apiVersion=${apiVersion}, model=${model})`
     );
     err.statusCode = 502;
+    err.code = "GEMINI_API_ERROR";
     err.expose = true;
     throw err;
   }

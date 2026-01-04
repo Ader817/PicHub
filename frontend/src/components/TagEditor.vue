@@ -33,7 +33,10 @@ async function aiTags() {
     ElMessage.success('AI 标签已生成')
     emit('updated')
   } catch (e) {
-    ElMessage.error(e?.response?.data?.message || 'AI 标签生成失败（可能未配置 GEMINI_API_KEY）')
+    const status = e?.response?.status
+    const msg = e?.response?.data?.message
+    if (status === 501) ElMessage.error(msg || 'GEMINI_API_KEY 未配置')
+    else ElMessage.error(msg || 'AI 标签生成失败（网络/超时）')
   } finally {
     aiLoading.value = false
   }
