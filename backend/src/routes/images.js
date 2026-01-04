@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import { authRequired } from "../middlewares/auth.js";
-import { getDetail, list, remove, saveEdited, upload } from "../controllers/imageController.js";
+import { getDetail, list, remove, rename, saveEdited, upload } from "../controllers/imageController.js";
 import { addTagToImage, generateAiTags, removeTagFromImage } from "../controllers/tagController.js";
 
 const uploadMulter = multer({
@@ -16,6 +16,7 @@ imagesRouter.get("/", authRequired, list);
 imagesRouter.get("/:id", authRequired, getDetail);
 imagesRouter.delete("/:id", authRequired, remove);
 
+imagesRouter.patch("/:id/filename", authRequired, rename);
 imagesRouter.post("/:id/edit", authRequired, uploadMulter.single("file"), saveEdited);
 imagesRouter.post("/:id/ai-tags", authRequired, generateAiTags);
 imagesRouter.post("/:id/tags", authRequired, addTagToImage);

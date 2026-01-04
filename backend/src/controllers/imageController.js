@@ -184,6 +184,41 @@ export const remove = asyncHandler(async (req, res) => {
   res.json({ ok: true });
 });
 
+const renameSchema = z.object({ filename: z.string().min(1).max(255) });
+
+function sanitizeFilename(input) {
+  const value = String(input ?? "").trim();
+  if (!value) return { ok: false, message: "Filename is required" };
+  if (value.length > 255) return { ok: false, message: "Filename too long" };
+  if (/[\0\r\n]/.test(value)) return { ok: false, message: "Invalid filename" };
+  if (/[\\/]/.test(value)) return { ok: false, message: "Invalid filename" };
+  return { ok: true, value };
+}
+
+export const rename = asyncHandler(async (req, res) => {
+  const id = Number(req.params.id);
+  const image = await Image.findOne({ where: { id, user_id: req.auth.userId } });
+  if (!image) return res.status(404).json({ message: "Image not found" });
+
+  const parsed = renameSchema.parse(req.body || {});
+  const sanitized = sanitizeFilename(parsed.filename);
+  if (!sanitized.ok) return res.status(400).json({ message: sanitized.message });
+
+  const oldExt = path.parse(image.filename || "").ext || "";
+  const newExt = path.parse(sanitized.value).ext || "";
+
+  let finalName = sanitized.value;
+  if (!newExt && oldExt) finalName = `${finalName}${oldExt}`;
+
+  if (finalName.length > 255) return res.status(400).json({ message: "Filename too long" });
+
+  image.filename = finalName;
+  await image.save();
+
+  const full = await Image.findOne({ where: { id: image.id }, include: [{ model: Tag }, { model: ImageMetadata }] });
+  res.json({ image: serializeImage(full) });
+});
+
 const editSchema = z.object({}).passthrough();
 
 export const saveEdited = asyncHandler(async (req, res) => {
