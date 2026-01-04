@@ -10,6 +10,7 @@ const props = defineProps({
 const emit = defineEmits(['updated'])
 
 const newTag = ref('')
+const aiLoading = ref(false)
 
 async function addTag() {
   const name = newTag.value.trim()
@@ -25,12 +26,16 @@ async function removeTag(tagId) {
 }
 
 async function aiTags() {
+  if (aiLoading.value) return
+  aiLoading.value = true
   try {
     await api.post(`/images/${props.imageId}/ai-tags`)
     ElMessage.success('AI 标签已生成')
     emit('updated')
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || 'AI 标签生成失败（可能未配置 GEMINI_API_KEY）')
+  } finally {
+    aiLoading.value = false
   }
 }
 </script>
@@ -54,9 +59,19 @@ async function aiTags() {
       <div v-if="tags.length === 0" class="text-sm" :style="{ color: 'var(--pg-muted-foreground)' }">暂无标签</div>
     </div>
     <div class="flex flex-nowrap items-center gap-2 overflow-x-auto">
-      <el-input v-model="newTag" placeholder="添加标签" class="pg-input-pill w-56 shrink-0" @keyup.enter="addTag" />
+      <el-input
+        v-model="newTag"
+        placeholder="添加标签"
+        class="pg-input-pill w-56 shrink-0"
+        :disabled="aiLoading"
+        @keyup.enter="addTag"
+      />
       <el-button class="shrink-0 whitespace-nowrap" @click="addTag">添加</el-button>
-      <el-button class="shrink-0 whitespace-nowrap" type="success" @click="aiTags">生成 AI 标签</el-button>
+      <el-button class="shrink-0 whitespace-nowrap" type="success" :loading="aiLoading" @click="aiTags">生成 AI 标签</el-button>
+    </div>
+    <div v-if="aiLoading" class="flex items-center gap-2 text-xs" :style="{ color: 'var(--pg-muted-foreground)' }">
+      <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      <span>正在生成 AI 标签…（网络慢时可能需要等待）</span>
     </div>
   </div>
 </template>
