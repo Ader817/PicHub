@@ -117,34 +117,3 @@ test("auto creates year tag after upload", async () => {
   const names = detail.body.image.tags.map((t) => t.name);
   expect(names).toContain(`时间/${year}`);
 });
-
-test("rename updates filename and keeps extension when omitted", async () => {
-  const app = createApp();
-  const token = await registerAndGetToken(app);
-
-  const buffer = await sharp({
-    create: { width: 32, height: 32, channels: 3, background: { r: 10, g: 20, b: 30 } },
-  })
-    .png()
-    .toBuffer();
-
-  const upload = await request(app)
-    .post("/api/images/upload")
-    .set("Authorization", `Bearer ${token}`)
-    .attach("files", buffer, { filename: "rename.png", contentType: "image/png" });
-
-  expect(upload.status).toBe(200);
-  const id = upload.body.images[0].id;
-
-  const renamed = await request(app)
-    .patch(`/api/images/${id}/filename`)
-    .set("Authorization", `Bearer ${token}`)
-    .send({ filename: "new display name" });
-
-  expect(renamed.status).toBe(200);
-  expect(renamed.body.image.filename).toBe("new display name.png");
-
-  const detail = await request(app).get(`/api/images/${id}`).set("Authorization", `Bearer ${token}`);
-  expect(detail.status).toBe(200);
-  expect(detail.body.image.filename).toBe("new display name.png");
-});

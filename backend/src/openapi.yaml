@@ -68,32 +68,6 @@ paths:
           description: OK
         "404":
           description: Not found
-  /images/{id}/filename:
-    patch:
-      summary: Rename image (update display filename)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                filename:
-                  type: string
-              required: [filename]
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Validation failed
-        "404":
-          description: Not found
   /images/{id}/edit:
     post:
       summary: Save edited copy (upload new file)

@@ -38,32 +38,6 @@ async function del() {
   router.push('/gallery')
 }
 
-async function rename() {
-  if (!image.value) return
-  try {
-    const { value } = await ElMessageBox.prompt('输入新的文件名（可不带扩展名）', '重命名', {
-      inputValue: image.value.filename,
-      confirmButtonText: '保存',
-      cancelButtonText: '取消',
-      inputPlaceholder: '例如：浙江大学 Logo.png',
-      inputValidator: (v) => {
-        const s = String(v || '').trim()
-        if (!s) return '请输入文件名'
-        if (s.length > 255) return '文件名过长'
-        if (/[\\/]/.test(s)) return '文件名不能包含 / 或 \\\\'
-        if (/[\0\r\n]/.test(s)) return '文件名包含非法字符'
-        return true
-      },
-    })
-    const { data } = await api.patch(`/images/${imageId.value}/filename`, { filename: value })
-    image.value = data.image
-    ElMessage.success('已重命名')
-  } catch (e) {
-    if (e === 'cancel' || e === 'close') return
-    ElMessage.error(e?.response?.data?.message || '重命名失败')
-  }
-}
-
 onMounted(async () => {
   try {
     await load()
@@ -88,13 +62,8 @@ onMounted(async () => {
         </div>
         <div class="grid gap-3">
           <div class="p-4 pg-card">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <div class="break-words text-lg font-extrabold" :style="{ fontFamily: 'var(--pg-font-heading)' }">
-                  {{ image.filename }}
-                </div>
-              </div>
-              <el-button class="shrink-0" size="small" @click="rename">重命名</el-button>
+            <div class="text-lg font-extrabold" :style="{ fontFamily: 'var(--pg-font-heading)' }">
+              {{ image.filename }}
             </div>
             <div class="mt-2 grid gap-1">
               <div v-if="image.width && image.height">尺寸：{{ image.width }} x {{ image.height }}</div>
