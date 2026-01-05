@@ -1,0 +1,43 @@
+* 90db19f (HEAD -> main) chore(env): add some comment in .env.example
+* ae32ba7 (origin/main) docs: style markdown docs substitute
+* 70d4805 docs: add images
+* 74f920a docs: update docs
+* fcd8dcd fix(gemini): distinguish timeout vs missing key
+* 259a901 Revert "feat(images): support renaming display filename"
+* 6faf252 feat(images): support renaming display filename
+* 785ed64 docs: update docs
+* d8a4167 docs: improve design doc readability
+* 9e9ecbf feat(ui): show loading for Gemini actions
+* 75a886f docs: refresh specs and add submission docs
+* 4c40b17 chore(env): modify .env.example
+* 86ebea3 docs(openapi): document search, tags, carousel endpoints
+* f32717f feat(fonts): self-host Outfit and Plus Jakarta Sans
+* 8bdbdcc feat(ui): format dates and improve tag visuals
+* a48e56a perf(tags): bulk inherit tags on edit
+* 4342ead feat(gemini): add request timeout
+* 71fca6d fix(api): avoid leaking internal errors
+* 7672541 feat(tags): add auto tag type and MySQL bootstrap
+* aad63d3 feat: enhance image carouse feature
+* a16d032 feat: enhance NL search logic
+* 108960d feat: enhance natural language search feature
+* d011269 feat: add response interceptors
+* 12c1110 feat: implement search failure contorl flow
+* 8ae0ff5 test: add some tests
+* 8b85e11 feat: add more exif message on image information block
+* 56ea4a3 style: refine image edit sidebar
+* bb17182 style: refine add-tag input block
+* 40bdf1f feat: refine natural language search input in SearchPanel.vue.
+* 860a52d feat: Implement new UI theme with custom properties
+* 4c8fb5f feat: implement image carousel board
+* d34fa5f chore: update dependencies
+* 198dfc3 docs: update README.md
+* f3c314b chore: improve docker build reliability
+* ba26cd8 fix(api): resolve old api usage isssue and use gemini-3-flash-preview instead
+* f50b27f feat: add tag inheritance for edited image
+* 0ff5728 test(tag): add tag inheritance test
+* e7aea57 feat: Add automatic time and location tagging
+* ed669c6 add: test year-tag auto creation after uploading image
+* 41440f0 refactor: modify package.json
+* 8fe82b1 feat: implement image color grading edit feature
+* 20ed513 feat: implement incremental naming suffix for edited image.
+* 65e7df8 Init repository
