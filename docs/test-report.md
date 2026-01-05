@@ -1,4 +1,4 @@
-# PicHub 测试报告
+# PicHub - 测试报告
 
 ## 1. 测试环境
 - OS：macOS（开发机）/ Docker Desktop（运行）
@@ -20,7 +20,7 @@
 运行方式：
 - `cd backend && npm test`
 
-### 2.2 前端（轻量单测）
+### 2.2 前端
 - 位置：`frontend/src/lib/__tests__/api.test.js`
 - 说明：当前仓库前端未配置独立的单测运行脚本，测试以“构建检查 + 手工验收”为主。
 

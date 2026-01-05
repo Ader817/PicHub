@@ -1,361 +1,278 @@
-# PicHub 图片管理网站 - 项目设计文档
+# PicHub - 设计文档
 
-## 0. 摘要（Summary）
-PicHub 是一个面向个人图片库管理的 B/S 网站，支持用户注册登录、图片上传与缩略图生成、EXIF 元信息提取、标签（自定义/AI/自动）管理、多条件搜索与自然语言搜索、轮播展示、在线编辑（裁剪/调色）以及删除等功能。
+## 1. 引言 (Introduction)
 
-本文的目的：
-- 用文字把“问题是什么、方案是什么、为什么这么选（取舍）”讲清楚，便于验收与复现
-- 让读者能快速定位到代码模块与数据结构，并理解关键业务链路
+### 1.1 文档目的
+本文档旨在详细阐述 **PicHub 个人智能图片库系统** 的技术架构、模块设计、数据模型及关键业务流程。本文档作为开发实施的蓝图，确保前后端开发人员对系统实现达成共识，并为后续的部署运维与测试提供依据。
 
----
-
-## 1. 背景与问题定义
-课程要求的核心是：**可部署、可演示、可检索、可管理** 的图片管理网站，并包含 AI 与“对话式检索”的增强能力。实际开发中遇到的关键问题：
-- 图片文件与数据库元信息需要同时持久化（容器重启不丢）
-- EXIF 信息不稳定（不同设备字段差异大），需要“尽力提取 + 允许为空”
-- AI/NL 搜索受网络与模型响应影响，需要明确的超时与 UI 等待提示
-- 标签体系需要兼容“用户自定义 / AI 生成 / 系统自动生成”，且编辑副本要继承标签避免信息丢失
+### 1.2 产品综述
+PicHub 是一个基于 B/S 架构的轻量级图片管理平台。它旨在解决个人图片分散管理难的问题，通过集成 AI 标签生成、自然语言（NL）检索及在线编辑功能，实现图片资源的**高可用存储、智能化检索与便捷化管理**。
 
 ---
 
-## 2. 目标、非目标与成功标准
+## 2. 需求分析与范围 (Requirements & Scope)
 
-### 2.1 目标（Goals）
-- 覆盖课程 11 个基础功能 + 2 个增强功能，并能在 Docker Compose 下稳定演示
-- 搜索可用：条件搜索 + NL 搜索；结果为 0 时给出明显空态与当前生效筛选条件
-- 编辑可用：裁剪 + 调色导出为新副本，并继承原图标签；副本命名不冲突
-- 移动端可用：核心流程（上传/搜索/详情/轮播/编辑/删除）在手机浏览器可完成
+### 2.1 业务背景与痛点
+本项目基于“可部署、可演示、可检索、可管理”的核心诉求构建。针对现有开源方案或简易 Demo 中常见的以下问题进行攻关：
+*   **数据易失性**：容器重启导致文件或元数据丢失。
+*   **检索低效**：仅支持文件名匹配，无法基于语义或场景搜索。
+*   **元数据混乱**：EXIF 信息缺失导致管理困难。
+*   **交互割裂**：编辑图片需要下载本地处理后再上传。
 
-### 2.2 非目标（Non-goals）
-- 不做云对象存储（S3/OSS）与 CDN（本项目采用本地 volume 存储）
-- 不做分布式任务队列/异步工作流（AI 调用与处理为同步请求，配合超时与提示）
-- 不提供完整 MCP 协议 Server（当前用 REST NL 搜索承载“对话检索”能力）
+### 2.2 范围界定 (Scope Management)
 
-### 2.3 成功标准（Success Criteria）
-- 从零启动：`docker compose --profile prod up -d --build` 后可注册登录并完成全流程演示
-- 数据持久化：容器重启后图片与数据库记录仍在（通过 Docker volume）
-- 后端测试可通过：`cd backend && npm test`
-- 前端可构建：`cd frontend && npm run build`
+#### In-Scope (包含内容)
+*   **核心管理**：用户认证、图片上传/删除、EXIF 提取、轮播展示。
+*   **增强检索**：多条件组合搜索、基于 AI 的自然语言对话式检索。
+*   **智能标签**：支持自定义、AI 自动生成、基于时空的规则生成（Auto Tags）。
+*   **在线编辑**：裁剪、旋转、调色，并支持**副本另存与标签继承**。
+*   **部署交付**：Docker Compose 一键编排，包含数据持久化方案。
 
----
+#### Out-of-Scope (不包含内容)
+*   **分布式存储**：暂不接入 AWS S3 / Aliyun OSS，采用本地 Volume 挂载。
+*   **复杂异步流**：暂不引入 RabbitMQ/Kafka 做异步任务解耦（AI 采用同步调用+超时控制）。
+*   **MCP 协议**：暂不提供完整的 MCP Server 实现，仅通过 REST API 承载对话能力。
 
-## 3. 技术选型与取舍（Tradeoffs）
-
-### 3.1 技术栈
-**前端**
-- Vue 3 + Vite + Vue Router
-- Pinia（`frontend/src/stores/auth.js`）
-- Element Plus + Tailwind CSS
-- CropperJS：裁剪交互（`frontend/src/views/Editor.vue`）
-
-**后端**
-- Node.js（ESM）+ Express（当前依赖为 5.x）
-- Sequelize ORM（生产连接 MySQL；测试使用 SQLite）
-- JWT + bcrypt：认证与密码存储
-- multer + sharp：上传与缩略图生成
-- exif-parser：EXIF 解析
-- swagger-ui-express：API 文档
-
-**外部服务（可选）**
-- Google Gemini：AI 标签生成、NL 解析（慢/不稳定是常态，采用超时与清晰提示）
-- AMap：GPS 逆地理（严格使用 `city` 字段，生成路径式地点标签）
-
-### 3.2 关键取舍
-- 图片存储采用本地 volume：实现最简、易验收；缺点是不利于横向扩展
-- 标签三分法：`custom/ai/auto` 统一入表，降低查询复杂度；缺点是需要在 UI 做清晰区分
-- NL 搜索走“解析 → 条件搜索”：保证可解释性与可复用；缺点是召回/精度受 prompt 与标签覆盖影响
-- 不实现 MCP 协议层：优先保证课程演示的“对话检索”能力链路可用（REST），避免协议栈引入不确定性
+### 2.3 验收标准 (Success Metrics)
+*   **交付物完整性**：`docker compose --profile prod up -d` 即可启动完整服务。
+*   **数据持久性**：容器销毁重建后，MySQL 数据与磁盘文件不丢失。
+*   **质量保障**：后端单元测试（Jest）覆盖核心 Service 层；前端 Build 无报错。
 
 ---
 
-## 4. 总体架构
+## 3. 技术选型与架构决策 (Tech Stack & Decisions)
 
-### 4.1 模块与数据流
+### 3.1 技术栈概览
+
+| 领域 | 技术选型 | 选型理由 (Decision Drivers) |
+| :--- | :--- | :--- |
+| **前端** | Vue 3 + Vite + Pinia | 响应式性能好，Pinia 状态管理简洁，Vite 构建速度快。 |
+| **UI 框架** | Element Plus + Tailwind | Element 提供成熟组件，Tailwind 灵活处理布局细节。 |
+| **后端** | Node.js (Express 5.x) | 生态丰富，异步 I/O 适合处理高并发的文件上传请求。 |
+| **数据库** | MySQL (Sequelize ORM) | 关系型数据强一致性；ORM 屏蔽数据库差异（方便切换 SQLite 测试）。 |
+| **图像处理** | Sharp + Exif-parser | Sharp 性能远超 Jimp，适合实时缩略图生成；Exif-parser 解析稳定。 |
+| **AI 服务** | Google Gemini | 具备多模态理解能力，用于图片打标与 NL 语义解析。 |
+
+### 3.2 关键架构权衡 (Trade-offs)
+
+1.  **存储方案：本地 Volume vs 对象存储**
+    *   *决策*：选择本地 Volume。
+    *   *理由*：降低部署门槛，便于验收演示，无需配置云厂商 AK/SK。
+    *   *代价*：不支持横向扩展（Scale-out），单机磁盘存在瓶颈。
+
+2.  **搜索实现：SQL Like vs Elasticsearch**
+    *   *决策*：基于 SQL 的条件查询 + AI 解析。
+    *   *理由*：数据量级在万级以下，MySQL 足以支撑；引入 ES 会极大地增加系统资源开销（RAM）。
+    *   *代价*：全文检索能力较弱，依赖 AI 将自然语言转译为结构化条件。
+
+3.  **标签体系设计：三分法**
+    *   *决策*：将 `custom` / `ai` / `auto` 标签统一存储，通过 `tag_type` 区分。
+    *   *理由*：简化查询逻辑，便于统一搜索。
+    *   *代价*：前端展示层需要做额外的分类渲染逻辑。
+
+---
+
+## 4. 总体架构设计 (System Architecture)
+
+### 4.1 逻辑架构图
+采用经典的分层架构，实现关注点分离。
 
 ```mermaid
 graph TB
-  subgraph FE["前端（Vue SPA）"]
-    FE1[Auth]
-    FE2[Gallery/Detail]
-    FE3[Search (criteria + NL)]
-    FE4[Editor]
-    FE5[Carousel UI]
+  subgraph Client ["客户端层"]
+    Browser["浏览器 (SPA)"]
   end
 
-  subgraph BE["后端（Express）"]
-    BE1[Routes]
-    BE2[Controllers]
-    BE3[Services]
-    BE4[(Sequelize Models)]
+  subgraph Gateway ["接入层"]
+    Nginx["Nginx (可选/反代)"]
   end
 
-  subgraph PERSIST["持久化"]
-    DB[(MySQL)]
-    FS[(Uploads Volume)]
+  subgraph AppLayer ["应用服务层 (Express)"]
+    Auth["认证服务"]
+    ImgMgr["图片管理服务"]
+    TagEng["标签引擎 (AI/Auto)"]
+    SearchEng["搜索服务 (NL/Criteria)"]
   end
 
-  FE -->|REST + JWT| BE1
-  BE1 --> BE2 --> BE3 --> BE4 --> DB
-  BE3 --> FS
+  subgraph DataLayer ["数据持久层"]
+    MySQL[(MySQL 业务库)]
+    FileSys[(本地文件存储)]
+  end
+
+  subgraph External ["外部服务"]
+    Gemini["Google Gemini API"]
+    AMap["高德地图 API"]
+  end
+
+  Browser -->|REST API| AppLayer
+  AppLayer --> MySQL
+  AppLayer --> FileSys
+  AppLayer --> Gemini
+  AppLayer --> AMap
 ```
 
-### 4.2 “大模型对话检索”能力说明
-课程文档提到“提供 mcp 接口，能通过大模型对话方式检索图片”。当前实现以 **REST 自然语言检索接口**承载该能力：
-- `POST /api/images/nl-search`：自然语言 → Gemini 解析 → 结构化条件 → 统一搜索链路 → 返回图片列表
-
-说明：
-- 本仓库未实现完整 MCP 协议 Server（协议层）。
-- 若验收必须展示 MCP 协议，可在此 REST 能力之上做薄封装（不改核心业务逻辑）。
-
 ---
 
-## 5. 模块设计（代码对应）
+## 5. 详细设计 (Detailed Design)
 
-### 5.1 前端
-页面（`frontend/src/views/`）：
-- `Login.vue` / `Register.vue`
-- `Gallery.vue`：图库 + 搜索面板 + 轮播入口
-- `ImageDetail.vue`：详情 + 标签编辑 + 元信息侧栏 + 删除
-- `Editor.vue`：裁剪/旋转/调色，保存副本
+### 5.1 数据库模型设计 (Schema Design)
 
-组件（`frontend/src/components/`）：
-- `ImageUploader.vue`：上传
-- `ImageGrid.vue`：缩略图网格 + 加入轮播按钮
-- `ImageCarousel.vue`：轮播展示
-- `SearchPanel.vue`：条件搜索 + NL 搜索（含加载中/空态/错误提示）
-- `TagEditor.vue`：标签增删 + AI 标签生成（含加载中提示）
-
-### 5.2 后端
-路由（`backend/src/routes/`）：
-- `auth.js` / `images.js` / `tags.js` / `search.js` / `carousel.js`
-
-控制器（`backend/src/controllers/`）：
-- `authController.js` / `imageController.js` / `tagController.js` / `searchController.js` / `carouselController.js`
-
-服务（`backend/src/services/`）：
-- `images.js`：保存原图与缩略图、公开 URL、删除文件
-- `autoTags.js`：自动标签（时间/地点路径）
-- `maps.js`：AMap 逆地理（可选）
-- `gemini.js`：Gemini 调用（含超时）
-- `tagInheritance.js`：编辑副本继承标签（批量写入）
-
----
-
-## 6. 数据设计
-
-### 6.1 表结构与关系（概览）
-建表脚本：`docker/mysql/init.sql`  
-启动自检：`backend/src/db/ensureSchema.js`
+关键实体关系定义如下：
 
 ```mermaid
 erDiagram
-  user ||--o{ image : owns
-  image ||--o| image_metadata : has
-  image ||--o{ image_tag : tagged_by
-  tag  ||--o{ image_tag : tags
-  user ||--o{ carousel_item : has
-  image ||--o{ carousel_item : in_list
-
-  user {
-    BIGINT id PK
-    VARCHAR username
-    VARCHAR email
-    VARCHAR password
-    DATETIME created_at
+  USERS ||--o{ IMAGES : uploads
+  IMAGES ||--o| METADATA : possesses
+  IMAGES ||--o{ IMAGE_TAGS : has
+  TAGS  ||--o{ IMAGE_TAGS : categorizes
+  
+  USERS {
+    bigint id PK
+    string username "Unique"
+    string password_hash "Bcrypt"
   }
 
-  image {
-    BIGINT id PK
-    BIGINT user_id FK
-    VARCHAR filename
-    VARCHAR original_path
-    VARCHAR thumbnail_small
-    VARCHAR thumbnail_medium
-    INT width
-    INT height
-    BOOLEAN is_edited
-    BIGINT parent_image_id
-    DATETIME upload_time
+  IMAGES {
+    bigint id PK
+    bigint user_id FK
+    string filename "Original Name"
+    string storage_path "Hashed Name"
+    string thumbnail_path
+    boolean is_edited
+    bigint parent_id "For Copies"
   }
 
-  image_metadata {
-    BIGINT id PK
-    BIGINT image_id FK
-    DATETIME capture_time
-    DOUBLE gps_latitude
-    DOUBLE gps_longitude
-    VARCHAR province
-    VARCHAR city
-    VARCHAR camera_model
-    VARCHAR aperture
-    VARCHAR shutter_speed
-    INT iso
-    INT width
-    INT height
+  METADATA {
+    bigint image_id FK
+    datetime capture_time
+    string camera_model
+    string gps_location
+    json technical_params "ISO, Aperture..."
   }
 
-  tag {
-    BIGINT id PK
-    VARCHAR name
-    ENUM tag_type
-    DATETIME created_at
-  }
-
-  image_tag {
-    BIGINT id PK
-    BIGINT image_id FK
-    BIGINT tag_id FK
-    DATETIME created_at
-  }
-
-  carousel_item {
-    BIGINT id PK
-    BIGINT user_id FK
-    BIGINT image_id FK
-    DATETIME created_at
+  TAGS {
+    bigint id PK
+    string name
+    enum type "custom/ai/auto"
   }
 ```
 
-### 6.2 标签类型与命名约定
-- `custom`：用户手动添加
-- `ai`：AI 生成（用户可删除）
-- `auto`：系统自动生成（时间/地点）
+**设计亮点：**
+*   **读写分离优化**：将高频读取的图片基础信息（`IMAGES`）与低频读取的详细元数据（`METADATA`）分表存储。
+*   **标签去重**：`TAGS` 表作为独立字典表，避免大量重复字符串存储。
 
-命名风格：路径式（便于 NL 搜索与人工筛选）
-- 时间：`时间/{年}`
-- 地点（可选）：`地点/{省}`、`地点/{省}/{地级市}`（严格使用 AMap 的 `city` 字段）
+### 5.2 核心业务流程 (Key Processes)
 
----
-
-## 7. 关键流程（序列图）
-
-### 7.1 上传（缩略图 + EXIF + 自动标签）
+#### (1) 智能上传与自动归档流程
+该流程包含文件处理、元数据解析、AI/规则打标三个并行或串行任务。
 
 ```mermaid
 sequenceDiagram
   autonumber
-  participant U as User
-  participant FE as Frontend
-  participant BE as Backend
-  participant FS as Uploads Volume
-  participant DB as MySQL
-  participant AM as AMap(可选)
+  participant C as Client
+  participant S as Server
+  participant FS as FileSystem
+  participant DB as Database
+  participant EXT as External(AMap/AI)
 
-  U->>FE: 选择图片上传
-  FE->>BE: POST /api/images/upload (multipart)
-  BE->>FS: 保存原图
-  BE->>FS: 生成 small/medium 缩略图（sharp）
-  BE->>BE: 解析 EXIF（exif-parser）
-  alt 有 GPS & 配置 AMap
-    BE->>AM: 逆地理（lat/lon）
-    AM-->>BE: province/city
+  C->>S: 上传图片 (Multipart)
+  S->>FS: 写入原图 (Random Filename)
+  par 并行处理
+    S->>FS: 生成缩略图 (Sharp)
+    S->>S: 解析 EXIF (Exif-parser)
   end
-  BE->>DB: 写入 image + image_metadata
-  BE->>DB: 写入 auto tags（时间/地点）
-  BE-->>FE: 返回图片列表
+  
+  opt 存在 GPS 信息
+    S->>EXT: 逆地理编码请求
+    EXT-->>S: 返回 省/市 信息
+  end
+
+  S->>DB: 事务写入: Image + Metadata
+  S->>DB: 自动生成标签 (时间/地点路径)
+  S-->>C: 返回图片对象及 ID
 ```
 
-### 7.2 编辑保存副本（裁剪 + 调色）
+#### (2) 自然语言搜索 (NL Search) 流程
+采用 **LLM Agent** 模式，将自然语言转化为 SQL 查询条件。
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as User
-  participant FE as Frontend(Editor)
-  participant BE as Backend
-  participant FS as Uploads Volume
-  participant DB as MySQL
-
-  U->>FE: 裁剪/旋转/调色
-  FE->>FE: Canvas 烘焙滤镜导出 JPEG blob
-  FE->>BE: POST /api/images/:id/edit (multipart)
-  BE->>FS: 保存副本原图与缩略图
-  BE->>DB: 新建 image（parent_image_id 指向原图）
-  BE->>DB: 继承 image_tag（批量 ignoreDuplicates）
-  BE->>DB: 写入 image_metadata + auto tags
-  BE-->>FE: 返回新副本详情
-```
-
-### 7.3 自然语言搜索（NL Search）
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as User
-  participant FE as Frontend(SearchPanel)
-  participant BE as Backend
-  participant GM as Gemini(可选)
-  participant DB as MySQL
-
-  U->>FE: 输入自然语言
-  FE->>BE: POST /api/images/nl-search
-  BE->>GM: 解析 NL -> 结构化条件（超时）
-  GM-->>BE: criteria / error
-  BE->>DB: 条件查询（按 user_id 隔离）
-  BE-->>FE: images + criteria + error(若有)
-  FE->>U: 展示结果/空态/错误提示 + loading
-```
+1.  用户输入：“找一下去年在杭州拍的猫”
+2.  Server 调用 Gemini，Prompt 包含当前支持的字段 schema。
+3.  Gemini 返回 JSON：
+    ```json
+    {
+      "tags": ["猫"],
+      "date_range": {"start": "2024-01-01", "end": "2024-12-31"},
+      "location": "杭州"
+    }
+    ```
+4.  Server 将 JSON 映射为 Sequelize 的 `Where` 查询条件。
+5.  执行查询并返回结果。
 
 ---
 
-## 8. 接口设计（API）
-OpenAPI 文件：`backend/src/openapi.yaml`（运行后通过 `http://localhost:8080/api-docs` 查看）
+## 6. 接口设计规范 (API Specification)
 
-接口分组：
-- Auth：注册/登录/当前用户
-- Images：上传、列表、详情、删除、保存编辑副本
-- Tags：图片标签增删、列出标签、生成 AI 标签
-- Search：条件搜索、NL 搜索
-- Carousel：轮播列表增删查（最多 20 张）
+遵循 RESTful 风格，所有接口挂载于 `/api/v1` 下。详细定义见 Swagger/OpenAPI 文档。
 
----
+### 6.1 通用规范
+*   **认证**：Header 携带 `Authorization: Bearer <token>`
+*   **响应结构**：
+    ```json
+    {
+      "success": true,
+      "data": { ... },
+      "message": "Operation successful",
+      "errorCode": null
+    }
+    ```
+*   **错误码**：
+    *   `400`：参数校验失败
+    *   `401`：Token 过期或无效
+    *   `403`：权限不足（试图操作他人的图片）
+    *   `429`：请求过于频繁（针对 AI 接口）
 
-## 9. 安全与权限
-- 密码：bcrypt 哈希存储（不落明文）
-- 鉴权：JWT；所有资源查询/变更必须按 `user_id` 过滤
-- 错误响应：避免泄露内部错误细节（需要时仅在开发环境查看日志）
-- 上传安全：
-  - 使用 multer 接收；对文件类型/大小做限制（以实现为准）
-  - 文件落盘使用随机文件名；原始“展示名”保存在 `image.filename`
-  - 兼容中文文件名在 multipart 头的历史编码问题（见 `backend/src/controllers/imageController.js`）
-
----
-
-## 10. 性能与容量考虑
-- 缩略图：列表/详情优先使用缩略图减少流量
-- 分页：列表接口支持 limit/offset（避免一次加载全量）
-- 索引：对常用查询字段建立索引（建表脚本中体现）
-- AI/NL：外部调用超时（避免 UI 长时间卡死），并在前端展示 loading
+### 6.2 核心接口摘要
+*   `POST /images/upload`：支持 `form-data`，字段 `file`。
+*   `POST /images/{id}/edit`：提交编辑后的图片，保存为副本。
+*   `POST /search/nl`：Body `{ query: "自然语言" }`，设置 15s 超时。
 
 ---
 
-## 11. 部署与运行
-Docker Compose：`docker-compose.yml`
-- 生产模式：`docker compose --profile prod up -d --build`
-- 开发模式（代码挂载）：`docker compose --profile dev up -d --build`
+## 7. 非功能性设计 (Non-Functional Requirements)
 
-持久化：
-- `mysql-data`：数据库数据
-- `upload-data`：上传图片与缩略图
+### 7.1 安全性 (Security)
+*   **存储安全**：上传文件名随机化（UUID），防止路径遍历攻击；禁止上传可执行文件后缀。
+*   **密码安全**：使用 `bcrypt` 加盐哈希，并在传输层建议使用 HTTPS。
+*   **资源隔离**：所有 SQL 查询强制注入 `where user_id = ?`，防止越权访问。
 
----
+### 7.2 性能与可靠性 (Performance & Reliability)
+*   **图片加载**：列表页强制使用 `thumbnail_small`，详情页使用 `thumbnail_medium`，点击查看原图才加载原始文件。
+*   **超时熔断**：外部 API（Gemini/AMap）设置严格超时时间（如 10s），超时后降级为“服务暂不可用”提示，不阻塞主流程。
 
-## 12. 测试策略
-- 后端：Jest + Supertest（`backend/src/__tests__/`），覆盖 auth/images/tags/search/autoTags
-- 前端：构建检查 `npm run build`；关键交互以手工验收为主
-- 手工验收脚本：`docs/test-report.md`
-
----
-
-## 13. 风险与应对
-- 外部 API 不可用（Gemini/AMap）：明确错误提示；核心功能仍可运行
-- 网络慢：前端 loading + 后端超时，避免“无响应”
-- MySQL/SQLite 差异：schema 自检（`backend/src/db/ensureSchema.js`）与测试覆盖
+### 7.3 可维护性 (Maintainability)
+*   **配置管理**：所有敏感信息（DB 密码、API Key）通过环境变量（`.env`）注入，禁止硬编码。
+*   **日志记录**：使用 `morgan` 记录 HTTP 请求日志，关键业务逻辑增加 Error Log。
 
 ---
 
-## 14. 相关文档入口
-- 需求规格说明书：`docs/requirements.md`
-- 使用手册：`docs/user-manual.md`
-- 测试报告：`docs/test-report.md`
-- 开发小结：`docs/dev-summary.md`
+## 8. 部署与测试 (Deployment & Testing)
+
+### 8.1 部署架构
+基于 Docker Compose 的微服务编排：
+*   **App Service**: 暴露 3000 端口，挂载 `./uploads` 至 `/app/uploads`。
+*   **DB Service**: MySQL 8.0，挂载 `./mysql-data` 至 `/var/lib/mysql`。
+
+### 8.2 测试策略
+*   **单元测试**：针对 `autoTags.js`, `searchService.js` 等纯逻辑模块。
+*   **集成测试**：使用 Supertest 模拟 HTTP 请求，覆盖完整的“注册-登录-上传-搜索”链路。
+*   **人工验收**：重点验证 AI 搜索的语义理解准确性及 UI 的加载状态反馈。
+
+---
+
+## 9. 风险与缓解计划 (Risk Management)
+
+| 风险点 | 影响 | 缓解措施 |
+| :--- | :--- | :--- |
+| **外部 API 不可用** | AI 标签/搜索功能失效 | 前端展示特定错误 Toast；系统回退至仅支持基础关键字搜索。 |
+| **磁盘空间不足** | 无法上传新图 | 设置文件大小限制（如 20MB）；提供定期清理脚本。 |
+| **元数据解析失败** | 无法获取拍摄时间/地点 | 设置默认值（如上传时间）；允许用户手动补全信息。 |
