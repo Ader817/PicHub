@@ -20,3 +20,11 @@
 ## 开发模式
 - 启动：`docker compose --profile dev up -d --build`
 - 访问前端（Vite）：`http://localhost:5173`
+
+## Docker 构建网络（基础镜像 + npm 源）
+为降低国内网络下 `docker pull/build` 失败概率：
+- 基础镜像（`node/nginx/mysql`）默认从 `BASE_IMAGE_REGISTRY=docker.m.daocloud.io` 拉取
+- `npm` 依赖默认使用 `NPM_REGISTRY=https://registry.npmmirror.com`
+
+如需切回官方源（直连 Docker Hub / npm 官方）：
+- 修改 `.env`：`BASE_IMAGE_REGISTRY=docker.io`、`NPM_REGISTRY=https://registry.npmjs.org`
