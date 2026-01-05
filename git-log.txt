@@ -1,5 +1,10 @@
-* 90db19f (HEAD -> main) chore(env): add some comment in .env.example
-* ae32ba7 (origin/main) docs: style markdown docs substitute
+* df20992 (HEAD -> main, origin/main) chore(env): hide API KEY
+* 60204dd chore(env): add personal API Key for test temporarily
+* a6b40bb docs: update README.md
+* c57db04 chore(docker): modify docker and npm source
+* 5fd9eeb docs: add git log
+* 90db19f chore(env): add some comment in .env.example
+* ae32ba7 docs: style markdown docs substitute
 * 70d4805 docs: add images
 * 74f920a docs: update docs
 * fcd8dcd fix(gemini): distinguish timeout vs missing key
